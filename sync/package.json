@@ -1,0 +1,8 @@
+{
+  "name": "bates-sync",
+  "private": true,
+  "version": "1.0.0",
+  "devDependencies": {
+    "wrangler": "^4.115.0"
+  }
+}
