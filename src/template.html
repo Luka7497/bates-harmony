@@ -378,8 +378,8 @@ body[data-view="ko"] .para.is-open .para__en{display:block}
 .legend div{display:flex;gap:.65rem;align-items:flex-start}
 .legend .mark{vertical-align:0;line-height:1.3;flex:none}
 .legend .sw{margin-top:.15rem}
-.bkrow{display:flex;gap:.5rem}
-.bkbtn{flex:1;border:1px solid var(--rule-strong);border-radius:.45rem;padding:.62rem .5rem;font-family:var(--ui);font-size:.8rem;color:var(--ink-soft);background:var(--paper)}
+.bkrow{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.45rem}
+.bkbtn{flex:1 1 8.5rem;min-width:8.5rem;white-space:nowrap;border:1px solid var(--rule-strong);border-radius:.45rem;padding:.62rem .5rem;font-family:var(--ui);font-size:.8rem;color:var(--ink-soft);background:var(--paper)}
 .bkbtn:hover{border-color:var(--indigo);color:var(--indigo)}
 .bkhint{font-family:var(--ui);font-size:.68rem;line-height:1.6;color:var(--ink-faint);margin:.6rem 0 0;word-break:keep-all}
 
@@ -427,6 +427,13 @@ body[data-view="ko"] .para.is-open .para__en{display:block}
   border-radius:.4rem;color:var(--ink-faint);font-size:.86rem;line-height:1.75;word-break:keep-all;
 }
 .pending b{color:var(--ink-soft)}
+
+.syncin{
+  width:100%;box-sizing:border-box;margin:0 0 .45rem;padding:.55rem .65rem;
+  border:1px solid var(--rule-strong);border-radius:.35rem;
+  background:transparent;color:var(--ink);font:inherit;font-size:.84rem;
+}
+.syncin::placeholder{color:var(--ink-faint)}
 
 /* 저장소가 막힌 환경에서 뜨는 알림 */
 .stwarn{
@@ -576,6 +583,7 @@ var S = {
   read: LS.json('hb.read', {}),
   hl: LS.json('hb.hl', {}),
   bm: LS.json('hb.bm', []),
+  del: LS.json('hb.del', {h:{}, b:{}}),
   tab: 'toc',
   jump: null,
   pending: null
@@ -730,7 +738,16 @@ function saveHl(){
   for(var k in S.hl){ if(!S.hl[k] || !S.hl[k].length) delete S.hl[k]; }
   LS.set('hb.hl', JSON.stringify(S.hl));
   updCounts();
+  if(window.SYNC) SYNC.schedule();
 }
+function saveDel(){
+  if(!S.del) S.del = {h:{}, b:{}};
+  LS.set('hb.del', JSON.stringify(S.del));
+}
+/* 지운 항목을 기록해 둡니다. 이게 없으면 다른 기기와 합칠 때 지운 것이 되살아납니다 */
+function tombHl(id){ S.del.h[id] = Date.now(); saveDel(); }
+function tombBm(ch, i){ S.del.b[ch + '|' + i] = Date.now(); saveDel(); }
+
 function hlId(ch, side, i, a, b){ return ch + '|' + side + '|' + i + '|' + a + '|' + b; }
 
 /* 컨테이너 텍스트 기준 시작~끝 문자 오프셋 */
@@ -786,7 +803,7 @@ function recolorHl(ch, id, color){
 function removeHlEntry(ch, id){
   var arr = S.hl[ch]; if(!arr) return;
   S.hl[ch] = arr.filter(function(h){ return h.id !== id; });
-  saveHl();
+  tombHl(id); saveHl();
 }
 function openHlEdit(span){
   S.pending = {mode:'edit', ch:S.ch, id:span.dataset.hl};
@@ -838,7 +855,7 @@ function hideTool(){
 }
 
 /* ── 북마크 ───────────────────────────────────────────── */
-function saveBm(){ LS.set('hb.bm', JSON.stringify(S.bm)); updCounts(); }
+function saveBm(){ LS.set('hb.bm', JSON.stringify(S.bm)); updCounts(); if(window.SYNC) SYNC.schedule(); }
 function nearestPara(){
   var barEl = document.querySelector('.bar');
   var top = (barEl ? barEl.offsetHeight : 0) + 14;
@@ -857,7 +874,7 @@ function toggleBm(){
   var i = nearestPara(); if(i == null){ toast('북마크할 문단이 없어요'); return; }
   var ix = -1;
   for(var j = 0; j < S.bm.length; j++){ if(S.bm[j].ch === S.ch && S.bm[j].i === i){ ix = j; break; } }
-  if(ix >= 0){ S.bm.splice(ix, 1); saveBm(); toast('북마크를 해제했어요'); }
+  if(ix >= 0){ S.bm.splice(ix, 1); tombBm(S.ch, i); saveBm(); toast('북마크를 해제했어요'); }
   else {
     var c = CH[S.ch];
     var snip = plain((c.ko && c.ko[i]) || c.paras[i] || '');
@@ -869,7 +886,7 @@ function toggleBm(){
 }
 function removeBm(ch, i){
   S.bm = S.bm.filter(function(b){ return !(b.ch === ch && b.i === i); });
-  saveBm(); markBmParas(); updBmBtn();
+  tombBm(ch, i); saveBm(); markBmParas(); updBmBtn();
 }
 function markBmParas(){
   document.querySelectorAll('.para.is-bm').forEach(function(b){ b.classList.remove('is-bm'); });
@@ -892,7 +909,7 @@ function updBmBtn(){
 
 /* ── 백업 (기기 간 이동) — 형광펜·북마크·읽은 표시를 파일로 주고받습니다 ── */
 function exportBackup(){
-  var data = JSON.stringify({app:'hb', v:1, hl:S.hl, bm:S.bm, read:S.read});
+  var data = JSON.stringify(snapshot());
   var name = 'bates-harmony-backup.json';
   if(window.claude && window.claude.downloads){
     window.claude.downloads.save({filename:name, data:data}).then(function(){
@@ -910,25 +927,174 @@ function exportBackup(){
   }
 }
 function importBackup(){ var inp = document.getElementById('fileImport'); inp.value = ''; inp.click(); }
-function mergeBackup(d){
-  if(!d || d.app !== 'hb'){ toast('알맞은 백업 파일이 아니에요'); return; }
+/* 지금 기록 전체를 하나로 묶습니다 (백업 파일과 동기화가 같은 형식을 씁니다) */
+function snapshot(){
+  return {app:'hb', v:2, hl:S.hl, bm:S.bm, read:S.read, del:S.del};
+}
+/* 다른 기기(또는 백업 파일)의 기록을 지금 기록과 합칩니다.
+   덮어쓰지 않고 합집합을 취하되, 어느 한쪽에서 지운 것은 지운 상태를 지킵니다. */
+function applyData(d){
   var addH = 0, addB = 0;
+  if(!S.del) S.del = {h:{}, b:{}};
+
+  /* 삭제 기록부터 합칩니다 */
+  if(d.del){
+    ['h','b'].forEach(function(kind){
+      var src = d.del[kind] || {};
+      for(var k in src){
+        if(!S.del[kind][k] || S.del[kind][k] < src[k]) S.del[kind][k] = src[k];
+      }
+    });
+  }
+
   if(d.hl) for(var ch in d.hl){
     var arr = S.hl[ch] || (S.hl[ch] = []);
     (d.hl[ch] || []).forEach(function(h){
+      if(S.del.h[h.id]) return;                                   /* 지운 형광펜은 되살리지 않습니다 */
       if(!arr.some(function(x){ return x.id === h.id; })){ arr.push(h); addH++; }
     });
   }
   if(Array.isArray(d.bm)) d.bm.forEach(function(b){
+    if(S.del.b[b.ch + '|' + b.i]) return;                         /* 지운 북마크도 마찬가지 */
     if(!S.bm.some(function(x){ return x.ch === b.ch && x.i === b.i; })){ S.bm.push(b); addB++; }
   });
+
+  /* 이쪽에서 지운 것이 저쪽 기록에 남아 있으면 여기서도 정리합니다 */
+  for(var c2 in S.hl){
+    S.hl[c2] = (S.hl[c2] || []).filter(function(h){ return !S.del.h[h.id]; });
+  }
+  S.bm = S.bm.filter(function(b){ return !S.del.b[b.ch + '|' + b.i]; });
+
   if(d.read) for(var c in d.read){ if(d.read[c]) S.read[c] = 1; }
-  saveHl(); saveBm(); LS.set('hb.read', JSON.stringify(S.read));
+
+  saveDel(); saveHl(); saveBm(); LS.set('hb.read', JSON.stringify(S.read));
+  return {h:addH, b:addB};
+}
+/* 화면을 합친 결과로 새로 그립니다 */
+function refreshAfterMerge(){
   buildToc(); if(S.ch && S.ch !== 'cover') rerender();
   if(S.tab === 'hl') buildHlPanel();
   if(S.tab === 'bm') buildBmPanel();
-  toast('불러왔어요 · 형광펜 ' + addH + '개 · 북마크 ' + addB + '개 추가');
+  updReadbar(0);
 }
+function mergeBackup(d){
+  if(!d || d.app !== 'hb'){ toast('알맞은 백업 파일이 아니에요'); return; }
+  var n = applyData(d);
+  refreshAfterMerge();
+  toast('불러왔어요 · 형광펜 ' + n.h + '개 · 북마크 ' + n.b + '개 추가');
+  SYNC.schedule();
+}
+
+/* ── 기기 간 자동 동기화 ──────────────────────────────────
+   같은 '동기화 코드'를 가진 기기끼리 형광펜·북마크·진도를 자동으로 맞춥니다.
+   흐름은 늘 같습니다: 내려받기 → 합치기 → 올리기.
+   덮어쓰기가 아니라 합치기이므로 두 기기를 동시에 써도 기록이 사라지지 않습니다. */
+var SYNC = (function(){
+  var cfg = LS.json('hb.sync', null);      /* {u: 서버주소, k: 코드} */
+  var timer = null, running = false, again = false;
+
+  function on(){ return !!(cfg && cfg.u && cfg.k); }
+  function endpoint(){ return cfg.u.replace(/\/+$/, '') + '/d/' + encodeURIComponent(cfg.k); }
+
+  function setStatus(msg){
+    var e = document.getElementById('syncMsg');
+    if(e) e.textContent = msg || '';
+  }
+  function stamp(t){ LS.set('hb.syncat', t); }
+  function lastText(){
+    var t = +(LS.get('hb.syncat') || 0);
+    if(!t) return '아직 동기화한 적 없음';
+    var d = new Date(t), p2 = function(n){ return (n < 10 ? '0' : '') + n; };
+    return '마지막 동기화 ' + p2(d.getHours()) + ':' + p2(d.getMinutes());
+  }
+
+  /* 내려받기 → 합치기 → 올리기 */
+  function run(quiet){
+    if(!on()) return Promise.resolve(false);
+    if(running){ again = true; return Promise.resolve(false); }
+    running = true;
+    if(!quiet) setStatus('동기화 중…');
+    return fetch(endpoint(), {cache:'no-store'})
+      .then(function(r){
+        if(!r.ok) throw new Error('내려받기 실패 (' + r.status + ')');
+        return r.json();
+      })
+      .then(function(remote){
+        var n = {h:0, b:0};
+        if(remote && remote.app === 'hb') n = applyData(remote);
+        return fetch(endpoint(), {
+          method:'PUT',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(snapshot())
+        }).then(function(r){
+          if(!r.ok) throw new Error('올리기 실패 (' + r.status + ')');
+          return n;
+        });
+      })
+      .then(function(n){
+        stamp(Date.now());
+        if(n.h || n.b){
+          refreshAfterMerge();
+          if(!quiet) toast('동기화 완료 · 형광펜 ' + n.h + '개 · 북마크 ' + n.b + '개 받음');
+        } else if(!quiet){
+          toast('동기화 완료 · 이미 최신입니다');
+        }
+        setStatus(lastText());
+        return true;
+      })
+      .catch(function(e){
+        setStatus('동기화 실패 · ' + e.message);
+        if(!quiet) toast('동기화하지 못했어요 · ' + e.message);
+        return false;
+      })
+      .then(function(ok){
+        running = false;
+        if(again){ again = false; schedule(); }
+        return ok;
+      });
+  }
+
+  /* 기록이 바뀌면 잠시 모았다가 한 번에 올립니다 */
+  function schedule(){
+    if(!on()) return;
+    clearTimeout(timer);
+    timer = setTimeout(function(){ run(true); }, 3000);
+  }
+
+  function randomCode(){
+    var a = new Uint8Array(18), out = '';
+    (window.crypto || window.msCrypto).getRandomValues(a);
+    var abc = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+    for(var i = 0; i < a.length; i++) out += abc[a[i] % abc.length];
+    return out;
+  }
+  function config(){ return cfg; }
+  function save(u, k){
+    cfg = (u && k) ? {u:u, k:k} : null;
+    if(cfg) LS.set('hb.sync', JSON.stringify(cfg));
+    else LS.set('hb.sync', '');
+  }
+  function pairLink(){
+    if(!on()) return '';
+    return location.origin + location.pathname + '#sync=' + encodeURIComponent(cfg.u) + '~' + encodeURIComponent(cfg.k);
+  }
+  /* 짝짓기 링크로 들어오면 설정을 받아 저장합니다 */
+  function adoptFromHash(){
+    var h = location.hash || '';
+    if(h.indexOf('#sync=') !== 0) return false;
+    var raw = decodeURIComponent(h.slice(6));
+    var cut = raw.indexOf('~');
+    if(cut < 0) return false;
+    save(decodeURIComponent(raw.slice(0, cut)), decodeURIComponent(raw.slice(cut + 1)));
+    if(history.replaceState) history.replaceState(null, '', location.pathname);
+    else location.hash = '';
+    return true;
+  }
+
+  return {on:on, run:run, schedule:schedule, randomCode:randomCode,
+          config:config, save:save, pairLink:pairLink,
+          adoptFromHash:adoptFromHash, lastText:lastText, setStatus:setStatus};
+})();
 
 /* ── 목록 패널 ────────────────────────────────────────── */
 var CLABEL = {y:'노랑', g:'초록', p:'분홍', b:'파랑'};
@@ -1070,6 +1236,54 @@ function showNote(id){
   body.appendChild(el('p', {cls:'notesrc', text:src}));
 }
 
+/* 설정 화면의 동기화 칸 */
+function buildSyncBox(){
+  var c = SYNC.config() || {};
+  var box = el('div', {});
+
+  var uIn = el('input', {cls:'syncin', type:'url', placeholder:'동기화 서버 주소 (https://...workers.dev)'});
+  uIn.value = c.u || '';
+  var kIn = el('input', {cls:'syncin', type:'text', placeholder:'동기화 코드'});
+  kIn.value = c.k || '';
+
+  var mk = el('button', {cls:'bkbtn', text:'코드 새로 만들기'});
+  mk.onclick = function(){ kIn.value = SYNC.randomCode(); };
+
+  var sv = el('button', {cls:'bkbtn', text:'저장하고 지금 동기화'});
+  sv.onclick = function(){
+    var u = uIn.value.trim(), k = kIn.value.trim();
+    if(!u || !k){ toast('주소와 코드를 모두 입력해 주세요'); return; }
+    if(k.length < 16){ toast('코드가 너무 짧아요 · 새로 만들기를 눌러 주세요'); return; }
+    SYNC.save(u, k);
+    SYNC.run(false).then(function(){ SYNC.setStatus(SYNC.lastText()); });
+  };
+
+  var cp = el('button', {cls:'bkbtn', text:'다른 기기용 링크 복사'});
+  cp.onclick = function(){
+    var link = SYNC.pairLink();
+    if(!link){ toast('먼저 저장해 주세요'); return; }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(link).then(function(){
+        toast('링크를 복사했어요 · 다른 기기에서 이 링크를 열면 바로 연결됩니다');
+      }, function(){ prompt('이 링크를 다른 기기에서 여세요', link); });
+    } else {
+      prompt('이 링크를 다른 기기에서 여세요', link);
+    }
+  };
+
+  var off = el('button', {cls:'bkbtn', text:'동기화 끄기'});
+  off.onclick = function(){ SYNC.save(null, null); uIn.value = ''; kIn.value = ''; SYNC.setStatus('꺼짐'); toast('동기화를 껐어요'); };
+
+  box.appendChild(uIn);
+  box.appendChild(kIn);
+  box.appendChild(el('div', {cls:'bkrow'}, [mk, cp]));
+  box.appendChild(el('div', {cls:'bkrow'}, [sv]));
+  box.appendChild(el('div', {cls:'bkrow'}, [off]));
+  box.appendChild(el('p', {cls:'bkhint', id:'syncMsg', text: SYNC.on() ? SYNC.lastText() : '꺼짐'}));
+  box.appendChild(el('p', {cls:'bkhint', text:'같은 코드를 넣은 기기끼리 형광펜·북마크·읽은 표시가 자동으로 합쳐집니다. 한쪽에서 지운 것은 지운 상태 그대로 유지됩니다. (글자 크기 등 읽기 설정은 기기마다 따로입니다.)'}));
+  return box;
+}
+
 function openSettings(){
   var body = openSheet('설정', '읽기 환경', 't');
   var wrap = el('div', {cls:'set'});
@@ -1085,6 +1299,8 @@ function openSettings(){
     el('p', {cls:'bkhint', text:'형광펜·북마크·읽은 표시를 파일로 내보내 다른 기기에서 불러올 수 있습니다. (글자 크기 등 읽기 설정은 기기마다 따로 유지됩니다.)'})
   ]);
   wrap.appendChild(row('기기 간 이동 · 백업', bk));
+
+  wrap.appendChild(row('기기 간 자동 동기화', buildSyncBox()));
 
   var lg = el('div', {cls:'legend'});
   [['mark--s','창 9:6','베이츠가 인용한 성경 구절. 한글 사역과 원문, 성경 전문 링크가 붙습니다.'],
@@ -1178,6 +1394,7 @@ function updProgress(){
   updBmBtn();
   if(frac > 0.88 && S.ch && S.ch !== 'cover' && !S.read[S.ch]){
     S.read[S.ch] = 1;
+    if(window.SYNC) SYNC.schedule();
     LS.set('hb.read', JSON.stringify(S.read));
     buildToc();
   }
@@ -1306,7 +1523,26 @@ if(!location.hash){
   var at = LS.get('hb.at');
   if(at && CH[at] && at !== 'cover') location.hash = at;
 }
+/* 짝짓기 링크(#sync=...)로 들어왔으면 설정부터 받아들입니다 */
+var adopted = SYNC.adoptFromHash();
 route(true);
+if(adopted) toast('이 기기를 연결했어요 · 기록을 맞추는 중…');
+
+/* 앱을 열 때, 다시 화면에 돌아올 때, 인터넷이 붙을 때 자동으로 맞춥니다 */
+if(SYNC.on()) SYNC.run(true);
+document.addEventListener('visibilitychange', function(){
+  if(!document.hidden && SYNC.on()) SYNC.run(true);
+});
+window.addEventListener('online', function(){ if(SYNC.on()) SYNC.run(true); });
+/* 앱을 닫기 직전 마지막으로 한 번 더 올립니다 */
+window.addEventListener('pagehide', function(){
+  if(!SYNC.on() || !navigator.sendBeacon) return;
+  try{
+    var c = SYNC.config();
+    navigator.sendBeacon(c.u.replace(/\/+$/, '') + '/d/' + encodeURIComponent(c.k),
+      new Blob([JSON.stringify(snapshot())], {type:'application/json'}));
+  }catch(e){}
+});
 
 /* 저장소가 막힌 환경(사파리 프라이빗 등)이면 조용히 날아가지 않도록 알려 줍니다 */
 if(!LS.ok){

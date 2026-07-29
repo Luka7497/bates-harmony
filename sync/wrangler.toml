@@ -1,0 +1,8 @@
+name = "bates-sync"
+main = "worker.js"
+compatibility_date = "2026-01-01"
+
+# KV 네임스페이스 id 는 setup.sh 가 만들어 채워 넣습니다.
+[[kv_namespaces]]
+binding = "HB"
+id = "PLACEHOLDER"
