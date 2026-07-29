@@ -396,6 +396,18 @@ body[data-view="ko"] .para.is-open .para__en{display:block}
 .hltool[data-mode="edit"] .hlrm{display:grid}
 .hltool .hlrm svg{width:1rem;height:1rem;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round}
 
+/* 폰에서는 선택 위치에 띄우지 않고 화면 아래에 붙입니다 (사파리 선택 메뉴와 겹치지 않도록) */
+@media (max-width:699px){
+  .hltool.on{
+    left:.6rem !important; right:.6rem !important; top:auto !important;
+    bottom:calc(.7rem + env(safe-area-inset-bottom));
+    justify-content:center; gap:.7rem; padding:.7rem .6rem;
+    border-radius:.9rem; box-shadow:0 -6px 26px -10px #000a;
+  }
+  .hltool .sw{width:2.1rem;height:2.1rem}
+  .hltool .hlrm{width:2.4rem;height:2.1rem}
+}
+
 /* 토스트 */
 .toast{
   position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 1.6rem);
@@ -434,6 +446,16 @@ body[data-view="ko"] .para.is-open .para__en{display:block}
   background:transparent;color:var(--ink);font:inherit;font-size:.84rem;
 }
 .syncin::placeholder{color:var(--ink-faint)}
+.syncin--code{
+  font-family:var(--ui);font-size:1.02rem;letter-spacing:.08em;text-align:center;
+  padding:.7rem .5rem;
+}
+.syncstat{
+  font-family:var(--ui);font-size:.74rem;line-height:1.6;margin:.6rem 0 0;
+  padding:.5rem .6rem;border-radius:.35rem;
+  background:var(--paper-raised);color:var(--ink-soft);word-break:keep-all;
+}
+.bkbtn--go{border-color:var(--indigo);color:var(--indigo)}
 
 /* 저장소가 막힌 환경에서 뜨는 알림 */
 .stwarn{
@@ -738,7 +760,7 @@ function saveHl(){
   for(var k in S.hl){ if(!S.hl[k] || !S.hl[k].length) delete S.hl[k]; }
   LS.set('hb.hl', JSON.stringify(S.hl));
   updCounts();
-  if(window.SYNC) SYNC.schedule();
+  if(window.SYNC) SYNC.run(true);
 }
 function saveDel(){
   if(!S.del) S.del = {h:{}, b:{}};
@@ -841,6 +863,11 @@ function onSelDone(){
 function showToolAt(rect){
   var t = document.getElementById('hltool');
   t.classList.add('on');
+  /* 폰에서는 아래에 고정되므로 위치를 계산하지 않습니다 */
+  if(window.matchMedia && window.matchMedia('(max-width:699px)').matches){
+    t.style.left = ''; t.style.top = '';
+    return;
+  }
   var tw = t.offsetWidth, th = t.offsetHeight;
   var x = rect.left + rect.width / 2 - tw / 2;
   x = Math.max(8, Math.min(x, window.innerWidth - tw - 8));
@@ -855,7 +882,7 @@ function hideTool(){
 }
 
 /* ── 북마크 ───────────────────────────────────────────── */
-function saveBm(){ LS.set('hb.bm', JSON.stringify(S.bm)); updCounts(); if(window.SYNC) SYNC.schedule(); }
+function saveBm(){ LS.set('hb.bm', JSON.stringify(S.bm)); updCounts(); if(window.SYNC) SYNC.run(true); }
 function nearestPara(){
   var barEl = document.querySelector('.bar');
   var top = (barEl ? barEl.offsetHeight : 0) + 14;
@@ -1062,13 +1089,18 @@ var SYNC = (function(){
     timer = setTimeout(function(){ run(true); }, 3000);
   }
 
+  /* 헷갈리는 글자(I,O,0,1,L)를 뺀 32자 알파벳 · 16자리 = 충분히 안전하면서 손으로 칠 수 있습니다 */
   function randomCode(){
-    var a = new Uint8Array(18), out = '';
+    var a = new Uint8Array(16), out = '';
     (window.crypto || window.msCrypto).getRandomValues(a);
-    var abc = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+    var abc = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
     for(var i = 0; i < a.length; i++) out += abc[a[i] % abc.length];
     return out;
   }
+  /* 보기 좋게 네 자씩 끊어 보여 줍니다 */
+  function pretty(k){ return (k || '').replace(/(.{4})(?=.)/g, '$1-'); }
+  /* 입력값에서 구분 기호를 걷어냅니다 */
+  function normalize(k){ return (k || '').replace(/[^A-Za-z0-9_]/g, ''); }
   function config(){ return cfg; }
   function save(u, k){
     cfg = (u && k) ? {u:u, k:k} : null;
@@ -1093,6 +1125,7 @@ var SYNC = (function(){
   }
 
   return {on:on, run:run, schedule:schedule, randomCode:randomCode, defaultUrl:function(){ return DEFAULT_URL; },
+          pretty:pretty, normalize:normalize,
           config:config, save:save, pairLink:pairLink,
           adoptFromHash:adoptFromHash, lastText:lastText, setStatus:setStatus};
 })();
@@ -1242,46 +1275,49 @@ function buildSyncBox(){
   var c = SYNC.config() || {};
   var box = el('div', {});
 
-  var uIn = el('input', {cls:'syncin', type:'url', placeholder:'동기화 서버 주소 (https://...workers.dev)'});
-  uIn.value = c.u || SYNC.defaultUrl();
-  var kIn = el('input', {cls:'syncin', type:'text', placeholder:'동기화 코드'});
-  kIn.value = c.k || '';
+  var kIn = el('input', {cls:'syncin syncin--code', type:'text', placeholder:'동기화 코드',
+    autocapitalize:'characters', autocorrect:'off', spellcheck:'false'});
+  kIn.value = SYNC.pretty(c.k || '');
 
-  var mk = el('button', {cls:'bkbtn', text:'코드 새로 만들기'});
-  mk.onclick = function(){ kIn.value = SYNC.randomCode(); };
-
-  var sv = el('button', {cls:'bkbtn', text:'저장하고 지금 동기화'});
-  sv.onclick = function(){
-    var u = uIn.value.trim(), k = kIn.value.trim();
-    if(!u || !k){ toast('주소와 코드를 모두 입력해 주세요'); return; }
-    if(k.length < 16){ toast('코드가 너무 짧아요 · 새로 만들기를 눌러 주세요'); return; }
-    SYNC.save(u, k);
-    SYNC.run(false).then(function(){ SYNC.setStatus(SYNC.lastText()); });
+  var mk = el('button', {cls:'bkbtn', text:'① 코드 새로 만들기'});
+  mk.onclick = function(){
+    if(kIn.value.trim() && !confirm('이미 코드가 있습니다. 새로 만들면 다른 기기와 연결이 끊어집니다.\n\n두 번째 기기라면 새로 만들지 말고, 첫 기기의 코드를 그대로 입력하세요.\n\n그래도 새로 만들까요?')) return;
+    kIn.value = SYNC.pretty(SYNC.randomCode());
   };
 
-  var cp = el('button', {cls:'bkbtn', text:'다른 기기용 링크 복사'});
+  var sv = el('button', {cls:'bkbtn bkbtn--go', text:'② 저장하고 지금 동기화'});
+  sv.onclick = function(){
+    var k = SYNC.normalize(kIn.value);
+    if(k.length < 16){ toast('코드가 짧아요 · 16자리를 정확히 입력해 주세요'); return; }
+    SYNC.save(SYNC.defaultUrl(), k);
+    kIn.value = SYNC.pretty(k);
+    SYNC.run(false);
+  };
+
+  var cp = el('button', {cls:'bkbtn', text:'코드 복사'});
   cp.onclick = function(){
-    var link = SYNC.pairLink();
-    if(!link){ toast('먼저 저장해 주세요'); return; }
+    var k = SYNC.normalize(kIn.value);
+    if(!k){ toast('코드가 없어요'); return; }
+    var pk = SYNC.pretty(k);
     if(navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(link).then(function(){
-        toast('링크를 복사했어요 · 다른 기기에서 이 링크를 열면 바로 연결됩니다');
-      }, function(){ prompt('이 링크를 다른 기기에서 여세요', link); });
-    } else {
-      prompt('이 링크를 다른 기기에서 여세요', link);
-    }
+      navigator.clipboard.writeText(pk).then(function(){ toast('코드를 복사했어요'); },
+        function(){ prompt('이 코드를 다른 기기에 입력하세요', pk); });
+    } else { prompt('이 코드를 다른 기기에 입력하세요', pk); }
   };
 
   var off = el('button', {cls:'bkbtn', text:'동기화 끄기'});
-  off.onclick = function(){ SYNC.save(null, null); uIn.value = ''; kIn.value = ''; SYNC.setStatus('꺼짐'); toast('동기화를 껐어요'); };
+  off.onclick = function(){
+    SYNC.save(null, null); kIn.value = '';
+    SYNC.setStatus('꺼짐'); toast('동기화를 껐어요');
+  };
 
-  box.appendChild(uIn);
   box.appendChild(kIn);
   box.appendChild(el('div', {cls:'bkrow'}, [mk, cp]));
   box.appendChild(el('div', {cls:'bkrow'}, [sv]));
   box.appendChild(el('div', {cls:'bkrow'}, [off]));
-  box.appendChild(el('p', {cls:'bkhint', id:'syncMsg', text: SYNC.on() ? SYNC.lastText() : '꺼짐'}));
-  box.appendChild(el('p', {cls:'bkhint', text:'같은 코드를 넣은 기기끼리 형광펜·북마크·읽은 표시가 자동으로 합쳐집니다. 한쪽에서 지운 것은 지운 상태 그대로 유지됩니다. (글자 크기 등 읽기 설정은 기기마다 따로입니다.)'}));
+  box.appendChild(el('p', {cls:'syncstat', id:'syncMsg', text: SYNC.on() ? SYNC.lastText() : '꺼짐 — 이 기기는 아직 동기화되지 않습니다'}));
+  box.appendChild(el('p', {cls:'bkhint', text:'첫 기기에서 ①로 코드를 만들고 ②를 누르세요. 두 번째 기기에서는 코드를 만들지 말고, 같은 코드를 그대로 입력한 뒤 ②만 누르면 됩니다.'}));
+  box.appendChild(el('p', {cls:'bkhint', text:'아이폰·아이패드는 홈 화면에 추가한 앱과 사파리의 저장 공간이 서로 분리되어 있습니다. 그래서 홈 화면 앱에서도 코드를 한 번 입력해 주셔야 합니다.'}));
   return box;
 }
 
@@ -1540,8 +1576,10 @@ window.addEventListener('pagehide', function(){
   if(!SYNC.on() || !navigator.sendBeacon) return;
   try{
     var c = SYNC.config();
+    /* sendBeacon 은 POST 로만 보내며, text/plain 이라야 프리플라이트 없이 나갑니다.
+       (예전에는 application/json 으로 보내 조용히 버려지고 있었습니다) */
     navigator.sendBeacon(c.u.replace(/\/+$/, '') + '/d/' + encodeURIComponent(c.k),
-      new Blob([JSON.stringify(snapshot())], {type:'application/json'}));
+      new Blob([JSON.stringify(snapshot())], {type:'text/plain;charset=UTF-8'}));
   }catch(e){}
 });
 

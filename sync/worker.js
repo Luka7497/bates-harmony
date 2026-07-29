@@ -4,8 +4,9 @@
  * 아주 단순한 키-값 저장소입니다. 리더 앱이 자기 기록(형광펜·북마크·진도)을
  * 통째로 올리고 내려받습니다. 병합은 앱 쪽에서 하므로 여기서는 보관만 합니다.
  *
- *   GET  /d/<코드>   → 저장해 둔 JSON (없으면 {})
- *   PUT  /d/<코드>   → JSON 저장
+ *   GET  /d/<코드>        → 저장해 둔 JSON (없으면 {})
+ *   PUT  /d/<코드>        → JSON 저장
+ *   POST /d/<코드>        → PUT 과 동일 (navigator.sendBeacon 은 POST 만 보냅니다)
  *
  * <코드>는 앱이 만든 무작위 문자열입니다. 이 코드를 아는 기기끼리만 같은
  * 기록을 공유합니다.
@@ -17,7 +18,7 @@ const MAX_BYTES = 2 * 1024 * 1024; // 2MB — 기록이 아무리 쌓여도 충�
 function corsHeaders() {
   return {
     'Access-Control-Allow-Origin': ALLOW_ORIGIN,
-    'Access-Control-Allow-Methods': 'GET, PUT, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, PUT, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Max-Age': '86400',
     Vary: 'Origin',
@@ -53,7 +54,8 @@ export default {
       return json(stored || '{}', 200);
     }
 
-    if (request.method === 'PUT') {
+    // sendBeacon 은 POST 로만 보내므로 PUT 과 똑같이 처리합니다.
+    if (request.method === 'PUT' || request.method === 'POST') {
       const body = await request.text();
       if (body.length > MAX_BYTES) return json('{"error":"too_large"}', 413);
       try {
