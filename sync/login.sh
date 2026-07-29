@@ -9,9 +9,11 @@ if [ ! -x "$W" ]; then
   npm install --silent
 fi
 
-if "$W" whoami >/dev/null 2>&1; then
+# wrangler whoami 는 로그인이 안 되어 있어도 종료 코드 0 을 돌려줍니다.
+# 그래서 종료 코드가 아니라 출력 내용을 보고 판단해야 합니다.
+if ! "$W" whoami 2>&1 | grep -q "not authenticated"; then
   echo "이미 로그인되어 있습니다:"
-  "$W" whoami 2>&1 | head -5
+  "$W" whoami 2>&1 | grep -iE "account|email" | head -5
   echo
   echo "다음 단계: bash $(pwd)/setup.sh"
   exit 0

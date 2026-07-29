@@ -5,4 +5,4 @@ compatibility_date = "2026-01-01"
 # KV 네임스페이스 id 는 setup.sh 가 만들어 채워 넣습니다.
 [[kv_namespaces]]
 binding = "HB"
-id = "PLACEHOLDER"
+id = "945d3dd83d3f40ca8b8647b2badd0120"

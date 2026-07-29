@@ -990,6 +990,7 @@ function mergeBackup(d){
    흐름은 늘 같습니다: 내려받기 → 합치기 → 올리기.
    덮어쓰기가 아니라 합치기이므로 두 기기를 동시에 써도 기록이 사라지지 않습니다. */
 var SYNC = (function(){
+  var DEFAULT_URL = 'https://bates-sync.saltshine.workers.dev';
   var cfg = LS.json('hb.sync', null);      /* {u: 서버주소, k: 코드} */
   var timer = null, running = false, again = false;
 
@@ -1091,7 +1092,7 @@ var SYNC = (function(){
     return true;
   }
 
-  return {on:on, run:run, schedule:schedule, randomCode:randomCode,
+  return {on:on, run:run, schedule:schedule, randomCode:randomCode, defaultUrl:function(){ return DEFAULT_URL; },
           config:config, save:save, pairLink:pairLink,
           adoptFromHash:adoptFromHash, lastText:lastText, setStatus:setStatus};
 })();
@@ -1242,7 +1243,7 @@ function buildSyncBox(){
   var box = el('div', {});
 
   var uIn = el('input', {cls:'syncin', type:'url', placeholder:'동기화 서버 주소 (https://...workers.dev)'});
-  uIn.value = c.u || '';
+  uIn.value = c.u || SYNC.defaultUrl();
   var kIn = el('input', {cls:'syncin', type:'text', placeholder:'동기화 코드'});
   kIn.value = c.k || '';
 

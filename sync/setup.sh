@@ -11,7 +11,8 @@ if [ ! -x "$W" ]; then
   npm install --silent
 fi
 
-if ! "$W" whoami >/dev/null 2>&1; then
+# whoami 는 미로그인 상태에서도 종료 코드 0 이므로 출력으로 확인합니다.
+if "$W" whoami 2>&1 | grep -q "not authenticated"; then
   echo "✗ 아직 로그인되어 있지 않습니다. 먼저 이것부터 실행해 주세요:" >&2
   echo "    bash $(pwd)/login.sh" >&2
   exit 1
