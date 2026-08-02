@@ -609,8 +609,9 @@ var S = {
   tab: 'toc',
   jump: null,
   pending: null,
-  noteId: null,   /* 지금 열려 있는 주석 id (없으면 null) */
-  noteCh: null     /* 그 주석이 속한 장 — 형광펜 저장 키를 만들 때 씁니다 */
+  noteId: null,    /* 지금 열려 있는 주석 id (없으면 null) */
+  noteCh: null,    /* 그 주석이 속한 장 — 형광펜 저장 키를 만들 때 씁니다 */
+  jumpNote: null   /* 다른 장으로 이동한 뒤 열어야 할 주석 (형광펜 목록에서 이동) */
 };
 var ORDER = DATA.order, CH = DATA.chapters, PARTS = DATA.parts;
 var KIND = {s:{cls:'mark--s',label:'성경'}, t:{cls:'mark--t',label:'주해'}, o:{cls:'mark--o',label:'원어'}, b:{cls:'mark--t',label:'배경'}};
@@ -641,6 +642,7 @@ function render(id, scroll){
   buildToc(); closeSheet(); closeDrawerIfMobile();
   if(S.jump && S.jump.ch === id){ scrollToPara(S.jump.i, S.jump.flash); S.jump = null; }
   else if(scroll !== false) window.scrollTo(0, 0);
+  if(S.jumpNote && S.jumpNote.ch === id){ var _nid = S.jumpNote.note; S.jumpNote = null; showNote(_nid); }
   updProgress(); updBmBtn();
 }
 function rerender(){ var y = window.scrollY; render(S.ch, false); window.scrollTo(0, y); }
@@ -1201,6 +1203,7 @@ function liItem(opts){
   var li = el('div', {cls:'li', 'data-ch':opts.ch, 'data-i':opts.i});
   if(opts.hlid) li.setAttribute('data-hlid', opts.hlid);
   li.setAttribute('data-kind', opts.kind);
+  if(opts.note){ li.setAttribute('data-note', opts.note); li.setAttribute('data-ownerch', opts.ownerCh); }
   var meta = el('div', {cls:'li__meta'}, [ el('span', {text:opts.meta}) ]);
   if(opts.side) meta.appendChild(el('span', {cls:'li__side', text:opts.side}));
   var x = el('button', {cls:'li__x', 'aria-label':'삭제'});
@@ -1224,7 +1227,30 @@ function buildHlPanel(){
       }));
     });
   });
+  /* 주석 팝업 안에서 칠한 형광펜 — 'n:<장>:<주석id>' 키로 따로 저장되어 있습니다 */
+  Object.keys(S.hl).filter(function(k){ return k.indexOf('n:') === 0; }).sort().forEach(function(key){
+    var arr = S.hl[key]; if(!arr || !arr.length) return;
+    var parts = key.split(':');
+    var ownerCh = parts[1], noteId = parts.slice(2).join(':');
+    var notes = (CH[ownerCh] && CH[ownerCh].notes) || {};
+    var note = notes[noteId] || {};
+    var title = note.title || note.m || '주해';
+    any = true;
+    list.appendChild(el('div', {cls:'panel__head', text: chLabel(ownerCh) + ' · 주해 · ' + title}));
+    arr.slice().sort(function(x,y){ return (x.i-y.i) || (x.a-y.a); }).forEach(function(h){
+      list.appendChild(liItem({
+        kind:'hl', ch:key, i:h.i, hlid:h.id, note:noteId, ownerCh:ownerCh,
+        dot:'d-' + h.c, meta:CLABEL[h.c] || '', side:'주해', text:h.t
+      }));
+    });
+  });
   if(!any) emptyPanel(list, 'M4 5h13a2 2 0 0 1 2 2v13l-4-3H4z', '아직 형광펜으로 칠한 곳이 없습니다.\n본문에서 원하는 대목을 그어 선택해 보세요.');
+}
+/* 형광펜 목록에서 주석 형광펜을 누르면 그 주석을 엽니다 (다른 장이면 그 장으로 먼저 이동) */
+function gotoNote(ownerCh, noteId){
+  closeDrawerIfMobile();
+  if(S.ch === ownerCh){ showNote(noteId); }
+  else { S.jumpNote = {ch:ownerCh, note:noteId}; location.hash = ownerCh; }
 }
 function buildBmPanel(){
   var list = document.getElementById('bmList'); clear(list);
@@ -1433,17 +1459,57 @@ function seg(key, opts, cur){
 }
 function isWide(){ return window.innerWidth >= 1024; }
 function navIsOpen(){ return document.getElementById('drawer').classList.contains('on'); }
+/* 지금 화면 위쪽에 걸쳐 있는 첫 문단 (스크롤 기준점) */
+function topAnchorPara(){
+  var barEl = document.querySelector('.bar');
+  var top = (barEl ? barEl.offsetHeight : 0) + 14;
+  var boxes = document.querySelectorAll('.para[data-i]');
+  for(var j = 0; j < boxes.length; j++){
+    if(boxes[j].getBoundingClientRect().bottom > top) return boxes[j];
+  }
+  return null;
+}
 function setNav(open){
+  /* 넓은 화면에서는 본문이 유동 폭이라, 사이드바를 여닫으면 본문 폭이 바뀌며 글이
+     다시 줄바꿈됩니다(리플로우). iOS 사파리는 이때 스크롤 위치를 지켜 주는 기능
+     (overflow-anchor)이 없어 엉뚱한 곳(주로 맨 아래)으로 튑니다. 그래서 읽던 문단을
+     애니메이션 내내 같은 자리에 붙들어 둡니다. */
+  var wide = isWide();
+  var changing = open !== navIsOpen();
+  var anchor = null;
+  if(wide && changing && S.ch && S.ch !== 'cover'){
+    var box = topAnchorPara();
+    if(box) anchor = { i: +box.dataset.i, off: box.getBoundingClientRect().top };
+  }
+
   document.getElementById('drawer').classList.toggle('on', open);
   document.getElementById('btnToc').classList.toggle('on', open);
   var scr = document.getElementById('scrim');
-  if(isWide()){
+  if(wide){
     document.body.classList.toggle('navpad', open);
     scr.classList.remove('on');
     LS.set('hb.nav', open ? '1' : '0');
   } else {
     document.body.classList.remove('navpad');
     scr.classList.toggle('on', open);
+  }
+
+  if(anchor){
+    var pin = function(){
+      var b = document.querySelector('.para[data-i="' + anchor.i + '"]');
+      if(!b) return;
+      var d = b.getBoundingClientRect().top - anchor.off;
+      if(Math.abs(d) > 0.5) window.scrollBy(0, d);
+    };
+    /* 애니메이션 동안 매끄럽게 붙들되(rAF), 최종 위치는 setTimeout 으로 반드시 보정합니다.
+       (rAF 는 탭이 안 보이면 멈추므로, 착지 위치 보장은 setTimeout 이 맡습니다) */
+    var t0 = Date.now();
+    (function loop(){
+      pin();
+      if(Date.now() - t0 < 380) requestAnimationFrame(loop);
+    })();
+    setTimeout(pin, 200);
+    setTimeout(pin, 360);   /* 전환(0.3s)이 끝난 뒤 최종 확정 */
   }
 }
 /* 넓은 화면에서는 사이드바를 유지하고, 좁은 화면에서만 자동으로 닫습니다 */
@@ -1524,7 +1590,7 @@ document.addEventListener('click', function(e){
     if(li.dataset.kind === 'hl'){
       var ch = li.dataset.ch;
       removeHlEntry(ch, li.dataset.hlid);
-      if(ch === S.ch) rerender();
+      refreshHlView(ch);
       buildHlPanel();
     } else {
       removeBm(li.dataset.ch, +li.dataset.i);
@@ -1533,7 +1599,11 @@ document.addEventListener('click', function(e){
     return;
   }
   var li2 = e.target.closest('.li');
-  if(li2){ gotoPara(li2.dataset.ch, +li2.dataset.i, true); return; }
+  if(li2){
+    if(li2.dataset.note){ gotoNote(li2.dataset.ownerch, li2.dataset.note); }
+    else gotoPara(li2.dataset.ch, +li2.dataset.i, true);
+    return;
+  }
 
   var m = e.target.closest('.mark[data-note]');
   if(m){ e.stopPropagation(); showNote(m.dataset.note); return; }
