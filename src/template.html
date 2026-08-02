@@ -764,7 +764,7 @@ function saveHl(){
   for(var k in S.hl){ if(!S.hl[k] || !S.hl[k].length) delete S.hl[k]; }
   LS.set('hb.hl', JSON.stringify(S.hl));
   updCounts();
-  if(window.SYNC) SYNC.run(true);
+  if(window.SYNC) SYNC.schedule();
 }
 function saveDel(){
   if(!S.del) S.del = {h:{}, b:{}};
@@ -942,7 +942,7 @@ function hideTool(){
 }
 
 /* ── 북마크 ───────────────────────────────────────────── */
-function saveBm(){ LS.set('hb.bm', JSON.stringify(S.bm)); updCounts(); if(window.SYNC) SYNC.run(true); }
+function saveBm(){ LS.set('hb.bm', JSON.stringify(S.bm)); updCounts(); if(window.SYNC) SYNC.schedule(); }
 function nearestPara(){
   var barEl = document.querySelector('.bar');
   var top = (barEl ? barEl.offsetHeight : 0) + 14;
@@ -1096,7 +1096,28 @@ var SYNC = (function(){
     return '마지막 동기화 ' + p2(d.getHours()) + ':' + p2(d.getMinutes());
   }
 
-  /* 내려받기 → 합치기 → 올리기 */
+  /* 동기 대상 상태를 순서와 무관한 지문 문자열로 만듭니다.
+     이게 서버 것과 같으면 올릴 필요가 없으므로 쓰기를 생략합니다 (KV 하루 쓰기 한도 절약). */
+  function canon(o){
+    o = o || {};
+    var hl = o.hl || {};
+    var hp = Object.keys(hl).sort().map(function(k){
+      var arr = (hl[k] || []).slice().sort(function(a,b){ return a.id < b.id ? -1 : a.id > b.id ? 1 : 0; });
+      return k + ':' + arr.map(function(h){ return h.id + '@' + h.c; }).join(',');
+    }).join(';');
+    var bm = (o.bm || []).slice().sort(function(a,b){
+      var ka = a.ch + '|' + a.i, kb = b.ch + '|' + b.i; return ka < kb ? -1 : ka > kb ? 1 : 0;
+    }).map(function(b){ return b.ch + '|' + b.i; }).join(',');
+    var rd = Object.keys(o.read || {}).filter(function(k){ return o.read[k]; }).sort().join(',');
+    var del = o.del || {h:{}, b:{}};
+    var dh = Object.keys(del.h || {}).sort().join(',');
+    var db = Object.keys(del.b || {}).sort().join(',');
+    return hp + '||' + bm + '||' + rd + '||' + dh + '||' + db;
+  }
+  var pushedSig = null;   /* 마지막으로 서버와 맞춘 지문 */
+  function dirty(){ return canon(snapshot()) !== pushedSig; }
+
+  /* 내려받기 → 합치기 → (다를 때만) 올리기 */
   function run(quiet){
     if(!on()) return Promise.resolve(false);
     if(running){ again = true; return Promise.resolve(false); }
@@ -1109,23 +1130,31 @@ var SYNC = (function(){
       })
       .then(function(remote){
         var n = {h:0, b:0};
-        if(remote && remote.app === 'hb') n = applyData(remote);
+        var remoteOk = remote && remote.app === 'hb';
+        if(remoteOk) n = applyData(remote);
+        var localSig = canon(snapshot());
+        var remoteSig = canon(remoteOk ? remote : {});
+        if(localSig === remoteSig){          /* 서버와 이미 같음 → 쓰기 생략 */
+          pushedSig = localSig;
+          return {n:n, pushed:false};
+        }
         return fetch(endpoint(), {
           method:'PUT',
-          headers:{'Content-Type':'application/json'},
+          headers:{'Content-Type':'text/plain;charset=UTF-8'},   /* 프리플라이트 없이 나갑니다 */
           body: JSON.stringify(snapshot())
         }).then(function(r){
           if(!r.ok) throw new Error('올리기 실패 (' + r.status + ')');
-          return n;
+          pushedSig = localSig;
+          return {n:n, pushed:true};
         });
       })
-      .then(function(n){
+      .then(function(res){
         stamp(Date.now());
-        if(n.h || n.b){
+        if(res.n.h || res.n.b){
           refreshAfterMerge();
-          if(!quiet) toast('동기화 완료 · 형광펜 ' + n.h + '개 · 북마크 ' + n.b + '개 받음');
+          if(!quiet) toast('동기화 완료 · 형광펜 ' + res.n.h + '개 · 북마크 ' + res.n.b + '개 받음');
         } else if(!quiet){
-          toast('동기화 완료 · 이미 최신입니다');
+          toast(res.pushed ? '동기화 완료 · 이 기기 기록을 올렸어요' : '동기화 완료 · 이미 최신입니다');
         }
         setStatus(lastText());
         return true;
@@ -1142,11 +1171,11 @@ var SYNC = (function(){
       });
   }
 
-  /* 기록이 바뀌면 잠시 모았다가 한 번에 올립니다 */
+  /* 기록이 바뀌면 잠시 모았다가 한 번에 올립니다 (연속 편집을 한 번의 쓰기로 묶습니다) */
   function schedule(){
     if(!on()) return;
     clearTimeout(timer);
-    timer = setTimeout(function(){ run(true); }, 3000);
+    timer = setTimeout(function(){ run(true); }, 4000);
   }
 
   /* 헷갈리는 글자(I,O,0,1,L)를 뺀 32자 알파벳 · 16자리 = 충분히 안전하면서 손으로 칠 수 있습니다 */
@@ -1184,7 +1213,7 @@ var SYNC = (function(){
     return true;
   }
 
-  return {on:on, run:run, schedule:schedule, randomCode:randomCode, defaultUrl:function(){ return DEFAULT_URL; },
+  return {on:on, run:run, schedule:schedule, dirty:dirty, randomCode:randomCode, defaultUrl:function(){ return DEFAULT_URL; },
           pretty:pretty, normalize:normalize,
           config:config, save:save, pairLink:pairLink,
           adoptFromHash:adoptFromHash, lastText:lastText, setStatus:setStatus};
@@ -1719,23 +1748,24 @@ var adopted = SYNC.adoptFromHash();
 route(true);
 if(adopted) toast('이 기기를 연결했어요 · 기록을 맞추는 중…');
 
-/* 앱을 열 때, 다시 화면에 돌아올 때, 인터넷이 붙을 때 자동으로 맞춥니다 */
+/* 앱을 열 때, 다시 화면에 돌아올 때, 인터넷이 붙을 때 맞춥니다 (내용이 같으면 쓰기는 생략됩니다) */
 if(SYNC.on()) SYNC.run(true);
 document.addEventListener('visibilitychange', function(){
-  if(!document.hidden && SYNC.on()) SYNC.run(true);
+  if(document.hidden) flushBeacon();            /* 백그라운드로 갈 때 마지막으로 올림 */
+  else if(SYNC.on()) SYNC.run(true);            /* 돌아올 때 내려받아 맞춤 */
 });
 window.addEventListener('online', function(){ if(SYNC.on()) SYNC.run(true); });
-/* 앱을 닫기 직전 마지막으로 한 번 더 올립니다 */
-window.addEventListener('pagehide', function(){
-  if(!SYNC.on() || !navigator.sendBeacon) return;
+window.addEventListener('pagehide', flushBeacon);
+/* 바뀐 게 있을 때만 sendBeacon(POST·text/plain — 프리플라이트 없이)으로 마지막 flush.
+   내용이 그대로면 보내지 않아 하루 쓰기 한도를 아낍니다. */
+function flushBeacon(){
+  if(!SYNC.on() || !navigator.sendBeacon || !SYNC.dirty()) return;
   try{
     var c = SYNC.config();
-    /* sendBeacon 은 POST 로만 보내며, text/plain 이라야 프리플라이트 없이 나갑니다.
-       (예전에는 application/json 으로 보내 조용히 버려지고 있었습니다) */
     navigator.sendBeacon(c.u.replace(/\/+$/, '') + '/d/' + encodeURIComponent(c.k),
       new Blob([JSON.stringify(snapshot())], {type:'text/plain;charset=UTF-8'}));
   }catch(e){}
-});
+}
 
 /* 저장소가 막힌 환경(사파리 프라이빗 등)이면 조용히 날아가지 않도록 알려 줍니다 */
 if(!LS.ok){
