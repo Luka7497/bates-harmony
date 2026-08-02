@@ -1290,6 +1290,7 @@ function scrollToPara(i, flash){
   if(flash){ box.classList.add('flash'); setTimeout(function(){ box.classList.remove('flash'); }, 1500); }
 }
 function gotoPara(ch, i, flash){
+  closeSheet();                 /* 열려 있던 주석 팝업을 닫고 본문으로 이동합니다 */
   closeDrawerIfMobile();
   if(S.ch === ch){ scrollToPara(i, flash); }
   else { S.jump = {ch:ch, i:i, flash:flash}; location.hash = ch; }
@@ -1563,8 +1564,12 @@ function updReadbar(frac){
 }
 function updProgress(){
   var h = document.documentElement;
-  var max = h.scrollHeight - h.clientHeight;
-  var frac = (S.ch && S.ch !== 'cover' && max > 40) ? Math.min(1, h.scrollTop / max) : 0;
+  /* document.documentElement.scrollTop 은 iOS 홈 화면 앱 등에서 0을 반환할 수 있어,
+     신뢰할 수 있는 window.scrollY / innerHeight 를 씁니다. */
+  var top = window.scrollY || window.pageYOffset || h.scrollTop || document.body.scrollTop || 0;
+  var docH = Math.max(h.scrollHeight, document.body.scrollHeight);
+  var max = docH - window.innerHeight;
+  var frac = (S.ch && S.ch !== 'cover' && max > 40) ? Math.min(1, top / max) : 0;
   updReadbar(frac);
   updBmBtn();
   if(frac > 0.88 && S.ch && S.ch !== 'cover' && !S.read[S.ch]){
@@ -1674,7 +1679,14 @@ document.getElementById('btnView').onclick = function(){
 };
 document.getElementById('scrim').onclick = function(){ closeSheet(); closeDrawerIfMobile(); };
 document.getElementById('sheetX').onclick = closeSheet;
-window.addEventListener('scroll', function(){ updProgress(); if(tool.classList.contains('on') && (!S.pending || S.pending.mode==='add')) hideTool(); }, {passive:true});
+window.addEventListener('scroll', function(){
+  updProgress();
+  if(tool.classList.contains('on') && (!S.pending || S.pending.mode === 'add')){
+    var sel = window.getSelection();
+    if(sel && !sel.isCollapsed) return;   /* 글자를 고르는 중(자동 스크롤 포함)이면 툴바를 유지합니다 */
+    hideTool();
+  }
+}, {passive:true});
 window.addEventListener('hashchange', function(){ route(true); });
 
 function route(scroll){
