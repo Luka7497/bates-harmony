@@ -295,7 +295,7 @@ body[data-view="ko"] .para.is-open .para__en{display:block}
 .tab.on{background:var(--indigo-wash);color:var(--ink);font-weight:600}
 .tab .cnt{font-size:.66rem;opacity:.7;margin-left:.2rem}
 .panelwrap{flex:1;display:flex;min-height:0}
-.panel{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(env(safe-area-inset-bottom) + 2rem)}
+.panel{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-bottom:calc(env(safe-area-inset-bottom) + 2rem)}
 .panel[hidden]{display:none}
 
 .toc{padding:.6rem 0 calc(env(safe-area-inset-bottom) + 2rem)}
@@ -351,7 +351,7 @@ body[data-view="ko"] .para.is-open .para__en{display:block}
 .sheet__head{display:flex;align-items:center;gap:.6rem;padding:.5rem 1.15rem .8rem;border-bottom:1px solid var(--rule)}
 .sheet__kind{font-family:var(--ui);font-size:.6rem;letter-spacing:.14em;padding:.25rem .5rem;border-radius:.25rem;flex:none}
 .sheet__ttl{flex:1;min-width:0;font-size:.95rem;font-weight:600;line-height:1.4}
-.sheet__body{overflow-y:auto;padding:1.1rem 1.15rem calc(env(safe-area-inset-bottom) + 1.5rem);-webkit-overflow-scrolling:touch}
+.sheet__body{overflow-y:auto;padding:1.1rem 1.15rem calc(env(safe-area-inset-bottom) + 1.5rem);-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .sheet__body p{margin:0 0 .9rem;font-size:.92rem;line-height:1.85;color:var(--ink);word-break:keep-all}
 .sheet__body p:last-child{margin-bottom:0}
 .quote{border-left:2px solid var(--rubric);padding:.15rem 0 .15rem .85rem;margin:0 0 1rem}
@@ -397,7 +397,7 @@ body[data-view="ko"] .para.is-open .para__en{display:block}
 .hltool .hlrm svg{width:1rem;height:1rem;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round}
 
 /* 폰에서는 선택 위치에 띄우지 않고 화면 아래에 붙입니다 (사파리 선택 메뉴와 겹치지 않도록) */
-@media (max-width:699px){
+@media (max-width:699px), (hover:none) and (pointer:coarse){
   .hltool.on{
     left:.6rem !important; right:.6rem !important; top:auto !important;
     bottom:calc(.7rem + env(safe-area-inset-bottom));
@@ -608,7 +608,9 @@ var S = {
   del: LS.json('hb.del', {h:{}, b:{}}),
   tab: 'toc',
   jump: null,
-  pending: null
+  pending: null,
+  noteId: null,   /* 지금 열려 있는 주석 id (없으면 null) */
+  noteCh: null     /* 그 주석이 속한 장 — 형광펜 저장 키를 만들 때 씁니다 */
 };
 var ORDER = DATA.order, CH = DATA.chapters, PARTS = DATA.parts;
 var KIND = {s:{cls:'mark--s',label:'성경'}, t:{cls:'mark--t',label:'주해'}, o:{cls:'mark--o',label:'원어'}, b:{cls:'mark--t',label:'배경'}};
@@ -806,6 +808,29 @@ function applyHls(page){
     wrapRange(c, h.a, h.b, h.id, h.c);
   });
 }
+/* 주석 팝업 안 형광펜 — 저장 키가 장 하나에 매이지 않으므로 별도 함수로 둡니다.
+   같은 번호(예: s1)의 주석이 장마다 따로 있을 수 있어, 키에 장 id를 함께 넣습니다. */
+function noteHlKey(ch, id){ return 'n:' + ch + ':' + id; }
+function applyNoteHls(ownerCh, noteId, body){
+  var arr = S.hl[noteHlKey(ownerCh, noteId)]; if(!arr) return;
+  arr.slice().sort(function(x,y){ return (x.i-y.i) || (x.a-y.b); }).forEach(function(h){
+    var c = body.querySelector('.nblk[data-nb="' + h.i + '"]'); if(!c) return;
+    wrapRange(c, h.a, h.b, h.id, h.c);
+  });
+}
+/* 형광펜을 더하거나·바꾸거나·지운 뒤, 그 내용이 보이는 화면(본문 또는 열린 주석)을
+   새로 그려 줍니다. 본문이면 그 자리 스크롤을 지키고, 주석이면 그 주석을 다시 엽니다. */
+function refreshHlView(ch){
+  if(ch === S.ch){ rerender(); return; }
+  var sheetOn = document.getElementById('sheet').classList.contains('on');
+  if(sheetOn && S.noteId && ch === noteHlKey(S.noteCh, S.noteId)){
+    var sb = document.getElementById('sheetBody');
+    var y = sb ? sb.scrollTop : 0;
+    showNote(S.noteId);
+    var sb2 = document.getElementById('sheetBody');
+    if(sb2) sb2.scrollTop = y;
+  }
+}
 function addHl(color){
   var p = S.pending; if(!p || p.mode !== 'add') return;
   var id = hlId(p.ch, p.side, p.i, p.a, p.b);
@@ -815,12 +840,12 @@ function addHl(color){
     saveHl();
   }
   var sel = window.getSelection(); if(sel) sel.removeAllRanges();
-  hideTool(); rerender(); toast('형광펜으로 칠했어요');
+  hideTool(); refreshHlView(p.ch); toast('형광펜으로 칠했어요');
 }
 function recolorHl(ch, id, color){
   var arr = S.hl[ch]; if(!arr) return;
   arr.forEach(function(h){ if(h.id === id) h.c = color; });
-  saveHl(); if(ch === S.ch) rerender();
+  saveHl(); refreshHlView(ch);
 }
 function removeHlEntry(ch, id){
   var arr = S.hl[ch]; if(!arr) return;
@@ -828,7 +853,8 @@ function removeHlEntry(ch, id){
   tombHl(id); saveHl();
 }
 function openHlEdit(span){
-  S.pending = {mode:'edit', ch:S.ch, id:span.dataset.hl};
+  var id = span.dataset.hl;
+  S.pending = {mode:'edit', ch:id.split('|')[0], id:id};
   document.getElementById('hltool').dataset.mode = 'edit';
   showToolAt(span.getBoundingClientRect());
 }
@@ -838,6 +864,11 @@ function paraSideOf(node){
   var e = node.nodeType === 1 ? node : node.parentNode;
   return e && e.closest ? e.closest('.para__ko, .para__en') : null;
 }
+/* 열려 있는 주석 팝업 안에서 고른 대목 (원어 인용·한글 사역·해설 문단) */
+function noteBlockOf(node){
+  var e = node.nodeType === 1 ? node : node.parentNode;
+  return e && e.closest ? e.closest('.nblk') : null;
+}
 function onSelDone(){
   setTimeout(function(){
     var sel = window.getSelection();
@@ -846,6 +877,25 @@ function onSelDone(){
       return;
     }
     var range = sel.getRangeAt(0);
+
+    /* 열린 주석 안에서 고른 경우를 먼저 봅니다 */
+    var sheetOn = document.getElementById('sheet').classList.contains('on');
+    if(sheetOn && S.noteId){
+      var nblk = noteBlockOf(range.startContainer), nblkE = noteBlockOf(range.endContainer);
+      if(nblk && nblk === nblkE){
+        var nch = noteHlKey(S.noteCh, S.noteId);
+        var ni = +nblk.dataset.nb;
+        var na = offsetOf(nblk, range.startContainer, range.startOffset);
+        var nb = offsetOf(nblk, range.endContainer, range.endOffset);
+        if(nb < na){ var nt = na; na = nb; nb = nt; }
+        if(nb - na < 1){ hideTool(); return; }
+        S.pending = {mode:'add', ch:nch, side:'nb', i:ni, a:na, b:nb, text:nblk.textContent.slice(na, nb)};
+        document.getElementById('hltool').dataset.mode = 'add';
+        showToolAt(range.getBoundingClientRect());
+        return;
+      }
+    }
+
     var ca = paraSideOf(range.startContainer), cb = paraSideOf(range.endContainer);
     if(!ca || ca !== cb){ hideTool(); return; }
     var side = ca.classList.contains('para__ko') ? 'ko' : 'en';
@@ -860,11 +910,19 @@ function onSelDone(){
     showToolAt(range.getBoundingClientRect());
   }, 8);
 }
+function isTouchUI(){
+  return !!(window.matchMedia && (
+    window.matchMedia('(max-width:699px)').matches ||
+    window.matchMedia('(hover:none) and (pointer:coarse)').matches
+  ));
+}
 function showToolAt(rect){
   var t = document.getElementById('hltool');
   t.classList.add('on');
-  /* 폰에서는 아래에 고정되므로 위치를 계산하지 않습니다 */
-  if(window.matchMedia && window.matchMedia('(max-width:699px)').matches){
+  /* 터치 기기(폰·아이패드 등)에서는 아래에 고정되므로 위치를 계산하지 않습니다.
+     화면 폭이 아니라 '호버가 없고 포인터가 뭉툭한지'로 판정해야, 아이패드처럼
+     넓은 화면에서도 iOS 자체 선택 메뉴(복사하기 등)와 겹치지 않습니다. */
+  if(isTouchUI()){
     t.style.left = ''; t.style.top = '';
     return;
   }
@@ -1213,6 +1271,7 @@ function gotoPara(ch, i, flash){
 
 /* ── 시트 ─────────────────────────────────────────────── */
 function openSheet(kind, title, kindKey){
+  S.noteId = null; S.noteCh = null;  /* showNote 가 아닌 다른 시트라면 주석 컨텍스트는 없습니다 */
   var k = document.getElementById('sheetKind');
   k.textContent = kind;
   k.style.background = kindKey === 's' ? 'var(--rubric-wash)' : kindKey === 'o' ? 'var(--gilt-wash)' : 'var(--indigo-wash)';
@@ -1232,16 +1291,29 @@ function closeSheet(){
 function showNote(id){
   var n = (CH[S.ch].notes || {})[id]; if(!n) return;
   var k = KIND[n.k] || KIND.t;
+  var ownerCh = S.ch;
   var body = openSheet(k.label, n.title || n.m || '주', n.k);
-  if(n.o) body.appendChild(el('p', {cls:'origq', text:n.o}));
+  S.noteId = id; S.noteCh = ownerCh;
+
+  /* 원문 인용·한글 사역·해설처럼 '내용'에 해당하는 문단에만 형광펜을 그을 수 있도록,
+     순서대로 번호(data-nb)를 매겨 둡니다. 출처 표기·링크는 캡션이라 대상에서 뺍니다. */
+  var nb = 0;
+  function blk(tag, cls, text){
+    var attrs = {'data-nb': String(nb++)};
+    attrs.cls = cls ? cls + ' nblk' : 'nblk';
+    attrs.text = text;
+    return el(tag, attrs);
+  }
+  if(n.o) body.appendChild(blk('p', 'origq', n.o));
   if(n.q){
-    body.appendChild(el('div', {cls:'quote'}, [
-      el('p', {cls:'k', text:n.q}),
-      n.qe ? el('p', {cls:'e', text:n.qe}) : null
-    ]));
+    var qwrap = el('div', {cls:'quote'});
+    qwrap.appendChild(blk('p', 'k', n.q));
+    if(n.qe) qwrap.appendChild(blk('p', 'e', n.qe));
+    body.appendChild(qwrap);
     body.appendChild(el('p', {cls:'qsrc', text:'한글 본문 · 우리말성경 문체를 따른 옮긴이 사역 (아래 링크가 정확한 본문) | 영문 · KJV 1611' }));
   }
-  if(n.t) n.t.split('\n').forEach(function(line){ if(line.trim()) body.appendChild(el('p', {text:line})); });
+  if(n.t) n.t.split('\n').forEach(function(line){ if(line.trim()) body.appendChild(blk('p', null, line)); });
+  applyNoteHls(ownerCh, id, body);
   if(n.ref){
     var q = encodeURIComponent(n.ref);
     var links = el('div', {cls:'sheet__links'});
@@ -1497,7 +1569,7 @@ tool.addEventListener('click', function(e){
   } else if(btn.classList.contains('hlrm')){
     if(S.pending && S.pending.mode === 'edit'){
       var ch = S.pending.ch, id = S.pending.id;
-      removeHlEntry(ch, id); rerender();
+      removeHlEntry(ch, id); refreshHlView(ch);
       if(S.tab === 'hl') buildHlPanel();
       toast('형광펜을 지웠어요');
     }
