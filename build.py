@@ -124,6 +124,11 @@ def main():
     payload = 'var DATA = ' + json.dumps(data, ensure_ascii=False, separators=(',', ':')) + ';'
     out = tpl.replace('/*__DATA__*/', payload)
 
+    # 빌드 시각을 심어, 각 기기가 최신본을 열고 있는지 눈으로 확인할 수 있게 합니다
+    import datetime
+    build_id = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+    out = out.replace('/*__BUILD__*/', build_id)
+
     path = os.path.join(ROOT, 'index.html')
     open(path, 'w').write(out)
 

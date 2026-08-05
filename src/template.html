@@ -614,6 +614,7 @@ var S = {
   jumpNote: null   /* 다른 장으로 이동한 뒤 열어야 할 주석 (형광펜 목록에서 이동) */
 };
 var ORDER = DATA.order, CH = DATA.chapters, PARTS = DATA.parts;
+var BUILD = '/*__BUILD__*/';   /* 빌드 시각 — 설정 화면에 표시해 기기별 최신 여부를 확인합니다 */
 var KIND = {s:{cls:'mark--s',label:'성경'}, t:{cls:'mark--t',label:'주해'}, o:{cls:'mark--o',label:'원어'}, b:{cls:'mark--t',label:'배경'}};
 
 /* 본문 속 {{id}} 표지를 실제 마커 노드로 바꾸어 채웁니다 */
@@ -835,12 +836,17 @@ function refreshHlView(ch){
 }
 function addHl(color){
   var p = S.pending; if(!p || p.mode !== 'add') return;
-  var id = hlId(p.ch, p.side, p.i, p.a, p.b);
   var arr = S.hl[p.ch] || (S.hl[p.ch] = []);
-  if(!arr.some(function(h){ return h.id === id; })){
-    arr.push({id:id, i:p.i, side:p.side, a:p.a, b:p.b, c:color, t:p.text, ts:Date.now()});
-    saveHl();
-  }
+  var parts = p.parts || [{i:p.i, a:p.a, b:p.b, text:p.text}];   /* 예전 단일 형식도 받아 줍니다 */
+  var added = 0;
+  parts.forEach(function(pt){
+    var id = hlId(p.ch, p.side, pt.i, pt.a, pt.b);
+    if(!arr.some(function(h){ return h.id === id; })){
+      arr.push({id:id, i:pt.i, side:p.side, a:pt.a, b:pt.b, c:color, t:pt.text, ts:Date.now()});
+      added++;
+    }
+  });
+  if(added) saveHl();
   var sel = window.getSelection(); if(sel) sel.removeAllRanges();
   hideTool(); refreshHlView(p.ch); toast('형광펜으로 칠했어요');
 }
@@ -871,6 +877,25 @@ function noteBlockOf(node){
   var e = node.nodeType === 1 ? node : node.parentNode;
   return e && e.closest ? e.closest('.nblk') : null;
 }
+/* 선택 범위가 걸치는 블록들을 각각 (블록, 그 안에서의 시작~끝 오프셋)으로 잘라 냅니다.
+   두 문단 이상 걸쳐 선택해도 문단마다 형광펜 한 조각씩 만들 수 있게 합니다. */
+function partsInRange(range, blocks){
+  var out = [];
+  for(var j = 0; j < blocks.length; j++){
+    var blk = blocks[j];
+    if(!range.intersectsNode(blk)) continue;
+    var full = blk.textContent;
+    var a = blk.contains(range.startContainer) ? offsetOf(blk, range.startContainer, range.startOffset) : 0;
+    var b = blk.contains(range.endContainer) ? offsetOf(blk, range.endContainer, range.endOffset) : full.length;
+    if(b < a){ var t = a; a = b; b = t; }
+    /* 앞뒤 공백만 걸린 조각은 건너뜁니다 */
+    while(a < b && /\s/.test(full[a])) a++;
+    while(b > a && /\s/.test(full[b-1])) b--;
+    if(b - a < 1) continue;
+    out.push({blk:blk, a:a, b:b, text:full.slice(a, b)});
+  }
+  return out;
+}
 function onSelDone(){
   setTimeout(function(){
     var sel = window.getSelection();
@@ -880,34 +905,31 @@ function onSelDone(){
     }
     var range = sel.getRangeAt(0);
 
-    /* 열린 주석 안에서 고른 경우를 먼저 봅니다 */
+    /* 열린 주석 안에서 고른 경우를 먼저 봅니다 (여러 문단 가능) */
     var sheetOn = document.getElementById('sheet').classList.contains('on');
-    if(sheetOn && S.noteId){
-      var nblk = noteBlockOf(range.startContainer), nblkE = noteBlockOf(range.endContainer);
-      if(nblk && nblk === nblkE){
-        var nch = noteHlKey(S.noteCh, S.noteId);
-        var ni = +nblk.dataset.nb;
-        var na = offsetOf(nblk, range.startContainer, range.startOffset);
-        var nb = offsetOf(nblk, range.endContainer, range.endOffset);
-        if(nb < na){ var nt = na; na = nb; nb = nt; }
-        if(nb - na < 1){ hideTool(); return; }
-        S.pending = {mode:'add', ch:nch, side:'nb', i:ni, a:na, b:nb, text:nblk.textContent.slice(na, nb)};
-        document.getElementById('hltool').dataset.mode = 'add';
-        showToolAt(range.getBoundingClientRect());
-        return;
-      }
+    if(sheetOn && S.noteId && noteBlockOf(range.startContainer)){
+      var blocks = Array.prototype.slice.call(document.getElementById('sheetBody').querySelectorAll('.nblk'));
+      var nparts = partsInRange(range, blocks).map(function(pp){
+        return {i:+pp.blk.dataset.nb, a:pp.a, b:pp.b, text:pp.text};
+      });
+      if(!nparts.length){ hideTool(); return; }
+      S.pending = {mode:'add', ch:noteHlKey(S.noteCh, S.noteId), side:'nb', parts:nparts};
+      document.getElementById('hltool').dataset.mode = 'add';
+      showToolAt(range.getBoundingClientRect());
+      return;
     }
 
-    var ca = paraSideOf(range.startContainer), cb = paraSideOf(range.endContainer);
-    if(!ca || ca !== cb){ hideTool(); return; }
-    var side = ca.classList.contains('para__ko') ? 'ko' : 'en';
-    var box = ca.closest('.para'); if(!box) { hideTool(); return; }
-    var i = +box.dataset.i;
-    var a = offsetOf(ca, range.startContainer, range.startOffset);
-    var b = offsetOf(ca, range.endContainer, range.endOffset);
-    if(b < a){ var tmp = a; a = b; b = tmp; }
-    if(b - a < 1){ hideTool(); return; }
-    S.pending = {mode:'add', ch:S.ch, side:side, i:i, a:a, b:b, text:ca.textContent.slice(a, b)};
+    /* 본문 (여러 문단 가능) */
+    var startSide = paraSideOf(range.startContainer);
+    if(!startSide){ hideTool(); return; }
+    var side = startSide.classList.contains('para__ko') ? 'ko' : 'en';
+    var boxes = Array.prototype.slice.call(document.querySelectorAll('#page .para__' + side));
+    var parts = partsInRange(range, boxes).map(function(pp){
+      var box = pp.blk.closest('.para');
+      return {i:+box.dataset.i, a:pp.a, b:pp.b, text:pp.text};
+    });
+    if(!parts.length){ hideTool(); return; }
+    S.pending = {mode:'add', ch:S.ch, side:side, parts:parts};
     document.getElementById('hltool').dataset.mode = 'add';
     showToolAt(range.getBoundingClientRect());
   }, 8);
@@ -1473,8 +1495,10 @@ function openSettings(){
    ['mark--o','라','라틴어·헬라어·히브리어 원어 풀이.']].forEach(function(r){
     lg.appendChild(el('div', {}, [el('span', {cls:'mark ' + r[0], text:r[1]}), el('span', {text:r[2]})]));
   });
-  lg.appendChild(el('div', {}, [el('span', {cls:'sw sw--y'}), el('span', {text:'본문을 그어 선택하면 형광펜 색을 고를 수 있습니다. 칠한 곳을 다시 누르면 색을 바꾸거나 지웁니다.'})]));
+  lg.appendChild(el('div', {}, [el('span', {cls:'sw sw--y'}), el('span', {text:'본문을 그어 선택하면 형광펜 색을 고를 수 있습니다. 여러 문단에 걸쳐 그어도 됩니다. 칠한 곳을 다시 누르면 색을 바꾸거나 지웁니다.'})]));
   wrap.appendChild(row('표지 안내', lg));
+
+  wrap.appendChild(el('p', {cls:'bkhint', text:'앱 버전 ' + BUILD + ' · 두 기기의 버전이 다르면, 오래된 기기에서 홈 화면 앱을 지웠다가 사파리에서 다시 추가해 주세요.'}));
   body.appendChild(wrap);
 }
 function row(label, inner){
