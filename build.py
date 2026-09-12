@@ -95,6 +95,11 @@ def main():
             for n in ch['notes'].values():
                 if n.get('ref'):
                     u = to_usfm(n['ref'])
+                    # ref 가 범위(1:26-27)이고 m 이 그 안의 핵심 절(골 1:27)을 가리키면,
+                    # 화면에 보이는 m 의 장·절로 링크를 맞춥니다.
+                    mv = _re.search(r'(\d+):(\d+)', n.get('m') or '')
+                    if u and mv:
+                        u = u.split('.')[0] + f'.{mv.group(1)}.{mv.group(2)}'
                     if u:
                         n['usfm'] = u
             # 본문에서 실제로 쓰인 주석만 남기고 미아 표지를 검증합니다

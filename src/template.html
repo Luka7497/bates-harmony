@@ -359,6 +359,7 @@ body[data-view="ko"] .para.is-open .para__en{display:block}
 .quote .k{font-size:.94rem;line-height:1.8;margin:0}
 .quote .e{font-family:var(--serif-en);font-style:italic;font-size:.88rem;line-height:1.65;color:var(--ink-faint);margin:.45rem 0 0}
 .origq{font-family:var(--serif-en);font-size:.98rem;color:var(--gilt);margin:0 0 .6rem;line-height:1.6}
+.quote .qref{font-family:var(--ui);font-size:.72rem;letter-spacing:.04em;color:var(--rubric);margin:.5rem 0 0}
 .qsrc{font-family:var(--ui);font-size:.66rem;letter-spacing:.04em;color:var(--ink-faint);margin:-.4rem 0 1rem}
 .notesrc{font-family:var(--ui);font-size:.66rem;line-height:1.6;color:var(--ink-faint);margin:1.4rem 0 0;padding-top:.8rem;border-top:1px solid var(--rule);word-break:keep-all}
 .sheet__links{display:flex;flex-wrap:wrap;gap:.45rem;margin-top:1.1rem}
@@ -616,6 +617,27 @@ var S = {
 };
 var ORDER = DATA.order, CH = DATA.chapters, PARTS = DATA.parts;
 var BUILD = '/*__BUILD__*/';   /* 빌드 시각 — 설정 화면에 표시해 기기별 최신 여부를 확인합니다 */
+/* 성경 약어(주석 m 필드) → 정식 책이름. 주석 팝업에 장·절을 온전한 이름으로 보여 줍니다 */
+var BOOK = {
+  '창':'창세기','출':'출애굽기','레':'레위기','민':'민수기','신':'신명기','수':'여호수아','삿':'사사기','룻':'룻기',
+  '삼상':'사무엘상','삼하':'사무엘하','왕상':'열왕기상','왕하':'열왕기하','대상':'역대상','대하':'역대하',
+  '스':'에스라','느':'느헤미야','에':'에스더','욥':'욥기','시':'시편','잠':'잠언','전':'전도서','아':'아가',
+  '사':'이사야','렘':'예레미야','애':'예레미야애가','겔':'에스겔','단':'다니엘','호':'호세아','욜':'요엘',
+  '암':'아모스','옵':'오바댜','욘':'요나','미':'미가','나':'나훔','합':'하박국','습':'스바냐','학':'학개',
+  '슥':'스가랴','말':'말라기',
+  '마':'마태복음','막':'마가복음','눅':'누가복음','요':'요한복음','행':'사도행전','롬':'로마서',
+  '고전':'고린도전서','고후':'고린도후서','갈':'갈라디아서','엡':'에베소서','빌':'빌립보서','골':'골로새서',
+  '살전':'데살로니가전서','살후':'데살로니가후서','딤전':'디모데전서','딤후':'디모데후서','딛':'디도서',
+  '몬':'빌레몬서','히':'히브리서','약':'야고보서','벧전':'베드로전서','벧후':'베드로후서',
+  '요일':'요한일서','요이':'요한이서','요삼':'요한삼서','유':'유다서','계':'요한계시록'
+};
+/* '골 1:27' → '골로새서 1:27' (모르는 약어는 그대로) */
+function fullRef(m){
+  var s = String(m || '').trim(), sp = s.indexOf(' ');
+  if(sp < 0) return s;
+  var ab = s.slice(0, sp);
+  return (BOOK[ab] || ab) + ' ' + s.slice(sp + 1);
+}
 var KIND = {s:{cls:'mark--s',label:'성경'}, t:{cls:'mark--t',label:'주해'}, o:{cls:'mark--o',label:'원어'}, b:{cls:'mark--t',label:'배경'}};
 
 /* 본문 속 {{id}} 표지를 실제 마커 노드로 바꾸어 채웁니다 */
@@ -1403,7 +1425,8 @@ function showNote(id){
   var n = (CH[S.ch].notes || {})[id]; if(!n) return;
   var k = KIND[n.k] || KIND.t;
   var ownerCh = S.ch;
-  var body = openSheet(k.label, n.title || n.m || '주', n.k);
+  /* 성경 주석은 머리 배지에 '성경' 대신 장·절 약칭(골 1:27)을 띄워 무슨 구절인지 바로 보이게 합니다 */
+  var body = openSheet((n.k === 's' && n.m) ? n.m : k.label, n.title || n.m || '주', n.k);
   S.noteId = id; S.noteCh = ownerCh;
 
   /* 원문 인용·한글 사역·해설처럼 '내용'에 해당하는 문단에만 형광펜을 그을 수 있도록,
@@ -1420,6 +1443,7 @@ function showNote(id){
     var qwrap = el('div', {cls:'quote'});
     qwrap.appendChild(blk('p', 'k', n.q));
     if(n.qe) qwrap.appendChild(blk('p', 'e', n.qe));
+    if(n.m) qwrap.appendChild(el('p', {cls:'qref', text:'— ' + fullRef(n.m)}));
     body.appendChild(qwrap);
     body.appendChild(el('p', {cls:'qsrc', text:'한글 본문 · 옮긴이 사역 (정확한 본문은 아래 새한글성경 링크) | 영문 · KJV 1611' }));
   }
