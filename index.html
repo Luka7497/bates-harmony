@@ -331,6 +331,7 @@ body[data-view="ko"] .para.is-open .para__en{display:block}
 .li__x:hover{background:var(--rubric-wash);color:var(--rubric)}
 .li__x svg{width:.95rem;height:.95rem;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round}
 .panel__head{font-family:var(--ui);font-size:.62rem;letter-spacing:.13em;color:var(--rubric);padding:1.1rem 1.1rem .35rem;position:sticky;top:0;background:var(--paper-raised)}
+.panel__sub{font-family:var(--ui);font-size:.6rem;letter-spacing:.08em;color:var(--ink-faint);padding:.75rem 1.1rem .2rem;word-break:keep-all}
 .panel__empty{padding:3rem 1.5rem;color:var(--ink-faint);font-size:.86rem;line-height:1.8;text-align:center;word-break:keep-all}
 .panel__empty svg{width:2rem;height:2rem;fill:none;stroke:currentColor;stroke-width:1.4;opacity:.5;margin-bottom:.8rem;display:block;margin-left:auto;margin-right:auto}
 
@@ -614,7 +615,7 @@ var S = {
   jumpNote: null   /* 다른 장으로 이동한 뒤 열어야 할 주석 (형광펜 목록에서 이동) */
 };
 var ORDER = DATA.order, CH = DATA.chapters, PARTS = DATA.parts;
-var BUILD = '2026-08-05 20:08';   /* 빌드 시각 — 설정 화면에 표시해 기기별 최신 여부를 확인합니다 */
+var BUILD = '2026-09-13 00:07';   /* 빌드 시각 — 설정 화면에 표시해 기기별 최신 여부를 확인합니다 */
 var KIND = {s:{cls:'mark--s',label:'성경'}, t:{cls:'mark--t',label:'주해'}, o:{cls:'mark--o',label:'원어'}, b:{cls:'mark--t',label:'배경'}};
 
 /* 본문 속 {{id}} 표지를 실제 마커 노드로 바꾸어 채웁니다 */
@@ -1264,35 +1265,67 @@ function liItem(opts){
   li.appendChild(x);
   return li;
 }
+/* 어떤 장의 주석들이 본문 어느 자리에 달려 있는지 — {주석id: {i:문단, a:그 문단 안 글자 위치}}.
+   글자 위치는 fill() 이 그리는 그대로(마커 자리에 짧은 표시 글자가 들어감) 세므로,
+   본문 형광펜의 a 오프셋과 같은 잣대로 비교할 수 있습니다. */
+function notePosMap(ch){
+  var c = CH[ch], map = {};
+  if(!c || !c.ko) return map;
+  c.ko.forEach(function(text, i){
+    var parts = String(text).split(/\{\{([a-z0-9_]+)\}\}/), acc = 0;
+    for(var j = 0; j < parts.length; j++){
+      if(j % 2 === 0){ acc += parts[j].length; continue; }
+      var n = c.notes && c.notes[parts[j]];
+      if(!n) continue;
+      if(!map[parts[j]]) map[parts[j]] = {i:i, a:acc};
+      acc += (n.m || '주').length;
+    }
+  });
+  return map;
+}
 function buildHlPanel(){
   var list = document.getElementById('hlList'); clear(list);
   var any = false;
+  /* 주석 팝업 안에서 칠한 형광펜은 'n:<장>:<주석id>' 키로 따로 저장되어 있으므로 먼저 장별로 모읍니다 */
+  var noteKeys = {};
+  Object.keys(S.hl).forEach(function(k){
+    if(k.indexOf('n:') !== 0 || !S.hl[k] || !S.hl[k].length) return;
+    (noteKeys[k.split(':')[1]] || (noteKeys[k.split(':')[1]] = [])).push(k);
+  });
   ORDER.forEach(function(ch){
-    var arr = S.hl[ch]; if(!arr || !arr.length) return;
+    var arr = S.hl[ch] || [], nks = noteKeys[ch] || [];
+    if(!arr.length && !nks.length) return;
     any = true;
     list.appendChild(el('div', {cls:'panel__head', text:chLabel(ch)}));
-    arr.slice().sort(function(x,y){ return (x.i-y.i) || (x.a-y.a); }).forEach(function(h){
-      list.appendChild(liItem({
-        kind:'hl', ch:ch, i:h.i, hlid:h.id, dot:'d-' + h.c,
-        meta:CLABEL[h.c] || '', side:(h.side === 'ko' ? '한글' : '영문'), text:h.t
-      }));
+
+    /* 본문 형광펜 한 조각, 주석 하나(그 안의 형광펜 묶음)를 모두 '본문 속 위치' 하나로 늘어놓습니다.
+       읽으면서 본문과 주석에 번갈아 칠한 순서 그대로 보이게 하기 위해서입니다. */
+    var pos = notePosMap(ch), rows = [];
+    arr.forEach(function(h){ rows.push({i:h.i, a:h.a, n:0, h:h}); });
+    nks.forEach(function(key){
+      var noteId = key.split(':').slice(2).join(':');
+      var at = pos[noteId] || {i:1e9, a:0};          /* 본문에 자리를 못 찾은 주석은 장 끝에 */
+      rows.push({i:at.i, a:at.a, n:1, key:key, noteId:noteId});
     });
-  });
-  /* 주석 팝업 안에서 칠한 형광펜 — 'n:<장>:<주석id>' 키로 따로 저장되어 있습니다 */
-  Object.keys(S.hl).filter(function(k){ return k.indexOf('n:') === 0; }).sort().forEach(function(key){
-    var arr = S.hl[key]; if(!arr || !arr.length) return;
-    var parts = key.split(':');
-    var ownerCh = parts[1], noteId = parts.slice(2).join(':');
-    var notes = (CH[ownerCh] && CH[ownerCh].notes) || {};
-    var note = notes[noteId] || {};
-    var title = note.title || note.m || '주해';
-    any = true;
-    list.appendChild(el('div', {cls:'panel__head', text: chLabel(ownerCh) + ' · 주해 · ' + title}));
-    arr.slice().sort(function(x,y){ return (x.i-y.i) || (x.a-y.a); }).forEach(function(h){
-      list.appendChild(liItem({
-        kind:'hl', ch:key, i:h.i, hlid:h.id, note:noteId, ownerCh:ownerCh,
-        dot:'d-' + h.c, meta:CLABEL[h.c] || '', side:'주해', text:h.t
-      }));
+    rows.sort(function(x,y){ return (x.i-y.i) || (x.a-y.a) || (x.n-y.n); });
+
+    rows.forEach(function(r){
+      if(!r.n){
+        var h = r.h;
+        list.appendChild(liItem({
+          kind:'hl', ch:ch, i:h.i, hlid:h.id, dot:'d-' + h.c,
+          meta:CLABEL[h.c] || '', side:(h.side === 'ko' ? '한글' : '영문'), text:h.t
+        }));
+        return;
+      }
+      var note = (CH[ch] && CH[ch].notes && CH[ch].notes[r.noteId]) || {};
+      list.appendChild(el('div', {cls:'panel__sub', text:'주해 · ' + (note.title || note.m || '주해')}));
+      S.hl[r.key].slice().sort(function(x,y){ return (x.i-y.i) || (x.a-y.a); }).forEach(function(h){
+        list.appendChild(liItem({
+          kind:'hl', ch:r.key, i:h.i, hlid:h.id, note:r.noteId, ownerCh:ch,
+          dot:'d-' + h.c, meta:CLABEL[h.c] || '', side:'주해', text:h.t
+        }));
+      });
     });
   });
   if(!any) emptyPanel(list, 'M4 5h13a2 2 0 0 1 2 2v13l-4-3H4z', '아직 형광펜으로 칠한 곳이 없습니다.\n본문에서 원하는 대목을 그어 선택해 보세요.');
@@ -1388,17 +1421,18 @@ function showNote(id){
     qwrap.appendChild(blk('p', 'k', n.q));
     if(n.qe) qwrap.appendChild(blk('p', 'e', n.qe));
     body.appendChild(qwrap);
-    body.appendChild(el('p', {cls:'qsrc', text:'한글 본문 · 우리말성경 문체를 따른 옮긴이 사역 (아래 링크가 정확한 본문) | 영문 · KJV 1611' }));
+    body.appendChild(el('p', {cls:'qsrc', text:'한글 본문 · 옮긴이 사역 (정확한 본문은 아래 새한글성경 링크) | 영문 · KJV 1611' }));
   }
   if(n.t) n.t.split('\n').forEach(function(line){ if(line.trim()) body.appendChild(blk('p', null, line)); });
   applyNoteHls(ownerCh, id, body);
   if(n.ref){
     var q = encodeURIComponent(n.ref);
     var links = el('div', {cls:'sheet__links'});
+    /* 새한글성경(대한성서공회) 온라인 리더 — ?chapter=책.장&verse=책.장.절 로 그 절이 표시된 채 열립니다 */
     if(n.usfm) links.appendChild(el('a', {
       target:'_blank', rel:'noopener',
-      href:'https://www.bible.com/ko/bible/4639/' + n.usfm + '.WB',
-      text:'우리말성경 본문'
+      href:'https://bskorea.or.kr/KNT/?chapter=' + n.usfm.split('.').slice(0, 2).join('.') + '&verse=' + n.usfm,
+      text:'새한글성경 본문'
     }));
     [['개역·쉬운성경','KOERV'], ['English · ESV','ESV'], ['KJV · 베이츠 당대','KJV']].forEach(function(v){
       links.appendChild(el('a', {

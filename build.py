@@ -5,7 +5,7 @@ import json, os, sys
 ROOT = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(ROOT, 'src')
 
-# 성경 책이름 → USFM 코드 (우리말성경 YouVersion 링크 생성용)
+# 성경 책이름 → USFM 코드 (새한글성경 bskorea.or.kr/KNT 링크 생성용)
 USFM = {
     'genesis':'GEN','exodus':'EXO','leviticus':'LEV','numbers':'NUM','deuteronomy':'DEU',
     'joshua':'JOS','judges':'JDG','ruth':'RUT','1 samuel':'1SA','2 samuel':'2SA',
@@ -91,7 +91,7 @@ def main():
                 'notes': k.get('notes', {}),
                 'done': bool(k.get('ko')),
             })
-            # 우리말성경 링크용 USFM 코드를 각 주석에 심어 둡니다
+            # 새한글성경 링크용 USFM 코드를 각 주석에 심어 둡니다
             for n in ch['notes'].values():
                 if n.get('ref'):
                     u = to_usfm(n['ref'])
