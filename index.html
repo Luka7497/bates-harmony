@@ -646,7 +646,7 @@ var S = {
 };
 if(!S.del.m) S.del.m = {};   /* 지운 노트 기록 (예전 기록에는 없음) */
 var ORDER = DATA.order, CH = DATA.chapters, PARTS = DATA.parts;
-var BUILD = '2026-09-27 07:21';   /* 빌드 시각 — 설정 화면에 표시해 기기별 최신 여부를 확인합니다 */
+var BUILD = '2026-09-27 16:21';   /* 빌드 시각 — 설정 화면에 표시해 기기별 최신 여부를 확인합니다 */
 /* 성경 약어(주석 m 필드) → 정식 책이름. 주석 팝업에 장·절을 온전한 이름으로 보여 줍니다 */
 var BOOK = {
   '창':'창세기','출':'출애굽기','레':'레위기','민':'민수기','신':'신명기','수':'여호수아','삿':'사사기','룻':'룻기',
@@ -921,7 +921,7 @@ function openHlEdit(span){
   var id = span.dataset.hl;
   S.pending = {mode:'edit', ch:id.split('|')[0], id:id};
   document.getElementById('hltool').dataset.mode = 'edit';
-  document.getElementById('hltool').dataset.memo = S.pending.ch.indexOf('n:') === 0 ? 'off' : 'on';
+  document.getElementById('hltool').dataset.memo = 'on';
   showToolAt(span.getBoundingClientRect());
 }
 
@@ -959,6 +959,34 @@ function applyMemos(page){
     if(pieces.length) pieces[pieces.length - 1].classList.add('memo--end');
   });
 }
+/* 주해 팝업 안 노트 — 키는 주해 형광펜과 같은 'n:<장>:<주석id>', 블록은 .nblk 번호 */
+function applyNoteMemos(ownerCh, noteId, body){
+  var arr = S.memo[noteHlKey(ownerCh, noteId)]; if(!arr) return;
+  arr.forEach(function(m){
+    m.parts.forEach(function(pt){
+      var c = body.querySelector('.nblk[data-nb="' + pt.i + '"]');
+      if(c) wrapRange(c, pt.a, pt.b, m.id, null, 'memo');
+    });
+    var pieces = body.querySelectorAll('.memo[data-memo="' + m.id + '"]');
+    if(pieces.length) pieces[pieces.length - 1].classList.add('memo--end');
+  });
+}
+/* 주해 노트를 닫으면 그 주해 팝업으로 돌아갑니다 */
+function backToNote(key){
+  key = String(key);
+  if(key.indexOf('n:') !== 0) return;
+  var p = key.split(':'), owner = p[1], nid = p.slice(2).join(':');
+  setTimeout(function(){
+    if(S.ch === owner && !document.getElementById('sheet').classList.contains('on')) showNote(nid);
+  }, 0);
+}
+/* 노트 시트 제목: 본문 노트는 장 이름, 주해 노트는 그 주해 제목 */
+function memoTitle(key){
+  key = String(key);
+  if(key.indexOf('n:') !== 0) return chLabel(key);
+  var p = key.split(':'), n = (CH[p[1]] && CH[p[1]].notes || {})[p.slice(2).join(':')] || {};
+  return '주해 · ' + (n.title || n.m || '주해');
+}
 /* 칠한 형광펜을 눌러 노트 버튼을 누르면: 그 자리에 걸친 노트가 있으면 열고, 없으면 새로 씁니다 */
 function memoForHl(ch, hlid){
   var h = null;
@@ -978,7 +1006,7 @@ function fmtDate(t){
 }
 function openMemoSheet(m, isNew){
   var ch = isNew ? m.ch : m.id.split('|')[0];
-  var body = openSheet('노트', chLabel(ch), 'm');
+  var body = openSheet('노트', memoTitle(ch), 'm');
   body.appendChild(el('div', {cls:'quote'}, [el('p', {cls:'k', text:m.t})]));
   var ta = el('textarea', {cls:'memota', placeholder:'이 대목에 대한 생각을 적어 두세요'});
   ta.value = m.body || '';
@@ -992,7 +1020,7 @@ function openMemoSheet(m, isNew){
       if(!confirm('이 노트를 지울까요?')) return;
       S.memoOpen = null;
       removeMemoEntry(m.id);
-      closeSheet(); refreshMemoView(ch);
+      closeSheet(); refreshMemoView(ch); backToNote(ch);
       toast('노트를 지웠어요');
     };
     btns.push(rm);
@@ -1020,13 +1048,14 @@ function commitMemo(o){
   saveMemo();
   return true;
 }
-function flushMemo(){
+function flushMemo(closing){
   var o = S.memoOpen; if(!o) return;
   S.memoOpen = null;
   if(commitMemo(o)){
     toast('노트를 저장했어요');
     setTimeout(function(){ refreshMemoView(o.ch); }, 0);   /* 시트를 닫는 도중에 다시 그리지 않도록 미룹니다 */
   }
+  if(closing) backToNote(o.ch);
 }
 function removeMemoEntry(id){
   var ch = id.split('|')[0];
@@ -1040,8 +1069,9 @@ function refreshMemoView(ch){
 function gotoMemo(ch, id){
   closeDrawerIfMobile();
   var m = findMemo(id); if(!m) return;
-  if(S.ch === ch){ scrollToPara(m.parts[0].i, true); openMemoSheet(m, false); }
-  else { S.jump = {ch:ch, i:m.parts[0].i, flash:true}; S.jumpMemo = {ch:ch, id:id}; location.hash = ch; }
+  var inNote = id.indexOf('n:') === 0;             /* 주해 노트는 본문 문단으로 스크롤하지 않습니다 */
+  if(S.ch === ch){ if(!inNote) scrollToPara(m.parts[0].i, true); openMemoSheet(m, false); }
+  else { if(!inNote) S.jump = {ch:ch, i:m.parts[0].i, flash:true}; S.jumpMemo = {ch:ch, id:id}; location.hash = ch; }
 }
 
 /* 선택 감지 → 툴바 */
@@ -1092,7 +1122,7 @@ function onSelDone(){
       if(!nparts.length){ hideTool(); return; }
       S.pending = {mode:'add', ch:noteHlKey(S.noteCh, S.noteId), side:'nb', parts:nparts};
       document.getElementById('hltool').dataset.mode = 'add';
-      document.getElementById('hltool').dataset.memo = 'off';   /* 노트는 본문에만 답니다 */
+      document.getElementById('hltool').dataset.memo = 'on';
       showToolAt(range.getBoundingClientRect());
       return;
     }
@@ -1542,12 +1572,21 @@ function buildMemoPanel(){
   var list = document.getElementById('memoList'); clear(list);
   var any = false;
   ORDER.forEach(function(ch){
-    var arr = S.memo[ch]; if(!arr || !arr.length) return;
+    /* 본문 노트는 그 자리, 주해 노트는 그 주해 표지가 달린 본문 자리로 줄 세웁니다 */
+    var pos = notePosMap(ch), rows = [];
+    (S.memo[ch] || []).forEach(function(m){ rows.push({i:m.parts[0].i, a:m.parts[0].a, n:0, m:m}); });
+    Object.keys(S.memo).forEach(function(k){
+      if(k.indexOf('n:' + ch + ':') !== 0) return;
+      var at = pos[k.split(':').slice(2).join(':')] || {i:1e9, a:0};
+      (S.memo[k] || []).forEach(function(m){ rows.push({i:at.i, a:at.a, n:1 + m.parts[0].i / 1e3, m:m, key:k}); });
+    });
+    if(!rows.length) return;
     any = true;
     list.appendChild(el('div', {cls:'panel__head', text:chLabel(ch)}));
-    arr.slice().sort(function(x, y){ return (x.parts[0].i - y.parts[0].i) || (x.parts[0].a - y.parts[0].a); }).forEach(function(m){
-      var q = m.t.length > 30 ? m.t.slice(0, 30) + '…' : m.t;
-      list.appendChild(liItem({kind:'memo', ch:ch, i:m.parts[0].i, memo:m.id, dot:'d-memo', meta:'“' + q + '”', text:m.body}));
+    rows.sort(function(x, y){ return (x.i - y.i) || (x.a - y.a) || (x.n - y.n); }).forEach(function(r){
+      var m = r.m, q = m.t.length > 30 ? m.t.slice(0, 30) + '…' : m.t;
+      list.appendChild(liItem({kind:'memo', ch:ch, i:m.parts[0].i, memo:m.id, dot:'d-memo',
+        meta:(r.key ? memoTitle(r.key) + ' · ' : '') + '“' + q + '”', text:m.body}));
     });
   });
   if(!any) emptyPanel(list, 'M5 4h10l4 4v12H5zM15 4v4h4M8 12h8M8 16h5', '아직 노트가 없습니다.\n본문을 그어 선택한 뒤 ‘노트’를 누르면\n그 대목에 생각을 적어 둘 수 있습니다.');
@@ -1616,7 +1655,7 @@ function openSheet(kind, title, kindKey){
   return body;
 }
 function closeSheet(){
-  flushMemo();
+  flushMemo(true);
   document.getElementById('sheet').classList.remove('on');
   if(window.innerWidth < 1024) document.getElementById('scrim').classList.remove('on');
 }
@@ -1648,6 +1687,7 @@ function showNote(id){
     body.appendChild(el('p', {cls:'qsrc', text:'한글 본문 · 옮긴이 사역 (정확한 본문은 아래 새한글성경 링크) | 영문 · KJV 1611' }));
   }
   if(n.t) n.t.split('\n').forEach(function(line){ if(line.trim()) body.appendChild(blk('p', null, line)); });
+  applyNoteMemos(ownerCh, id, body);
   applyNoteHls(ownerCh, id, body);
   if(n.ref){
     var q = encodeURIComponent(n.ref);
