@@ -12,7 +12,8 @@ GitHub Pages(`main` 브랜치)로 배포되고(https://luka7497.github.io/bates-
   - 화면 시안: https://claude.ai/artifact/1xcorzFa57aTKBCUSgMUBV
   - 다음 할 일: 스펙을 읽고 `superpowers:writing-plans`로 구현 계획을 쓴 뒤 구현합니다.
 - **보류:** 성경. 새한글성경은 갓피플 성경앱의 저작권 협의 결과를 기다리는 중입니다.
-- **후보:** 베이츠 재번역. VII장 시범 번역부터 합니다 (스펙 12장).
+- **베이츠 재번역:** VII장 완료 (2026-09-27, `main`의 `4994fd3`). 블라인드 비교에서 Opus 5.5 번역이 채택됐습니다. 다음은 VIII장부터이고, 형광펜이 있는 I–VI장은 맨 나중에 정합니다 (스펙 12장).
+- **합치기 전 주의:** `main`에 VII장 새 번역이 들어가 있습니다. `seojae-v1`을 `main`에 합치기 전에 `main`을 먼저 `seojae-v1`으로 받아 합칩니다.
 
 ## 반드시 지킬 것
 
