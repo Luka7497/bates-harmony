@@ -211,6 +211,8 @@ main{
 }
 /* 이동 시 잠깐 빛나는 강조 */
 .para.flash .para__ko{animation:flash 1.4s ease}
+.hl.hlflash{animation:hlflash 1.4s ease}
+@keyframes hlflash{0%,100%{box-shadow:none}18%,55%{box-shadow:0 0 0 .3rem var(--gilt-wash)}}
 @keyframes flash{0%,100%{background:transparent;box-shadow:none}18%,55%{background:var(--gilt-wash);box-shadow:0 0 0 .45rem var(--gilt-wash);border-radius:2px}}
 
 /* 형광펜 */
@@ -646,7 +648,7 @@ var S = {
 };
 if(!S.del.m) S.del.m = {};   /* 지운 노트 기록 (예전 기록에는 없음) */
 var ORDER = DATA.order, CH = DATA.chapters, PARTS = DATA.parts;
-var BUILD = '2026-09-27 17:16';   /* 빌드 시각 — 설정 화면에 표시해 기기별 최신 여부를 확인합니다 */
+var BUILD = '2026-09-27 21:46';   /* 빌드 시각 — 설정 화면에 표시해 기기별 최신 여부를 확인합니다 */
 /* 성경 약어(주석 m 필드) → 정식 책이름. 주석 팝업에 장·절을 온전한 이름으로 보여 줍니다 */
 var BOOK = {
   '창':'창세기','출':'출애굽기','레':'레위기','민':'민수기','신':'신명기','수':'여호수아','삿':'사사기','룻':'룻기',
@@ -761,7 +763,7 @@ function render(id, scroll){
   if(id === 'cover'){ buildCover(page); document.getElementById('barId').textContent = '신적 속성의 조화'; }
   else buildChapter(page, CH[id], id);
   buildToc(); closeSheet(); closeDrawerIfMobile();
-  if(S.jump && S.jump.ch === id){ scrollToPara(S.jump.i, S.jump.flash); S.jump = null; }
+  if(S.jump && S.jump.ch === id){ scrollToPara(S.jump.i, S.jump.flash, S.jump.hl); S.jump = null; }
   else if(scroll !== false) window.scrollTo(0, 0);
   if(S.jumpNote && S.jumpNote.ch === id){ var _nid = S.jumpNote.note; S.jumpNote = null; showNote(_nid); }
   if(S.jumpMemo && S.jumpMemo.ch === id){ var _m = findMemo(S.jumpMemo.id); S.jumpMemo = null; if(_m) openMemoSheet(_m, false); }
@@ -1696,18 +1698,25 @@ function switchTab(name){
 }
 
 /* ── 이동 ─────────────────────────────────────────────── */
-function scrollToPara(i, flash){
+/* hlid가 있으면 문단 첫머리가 아니라 그 형광펜 자리로 갑니다 (긴 문단에서는 한참 아래에 있을 수 있어서) */
+function scrollToPara(i, flash, hlid){
   var box = document.querySelector('.para[data-i="' + i + '"]'); if(!box) return;
+  var spans = hlid ? box.querySelectorAll('.hl[data-hl="' + hlid + '"]') : [];
+  var target = spans.length ? spans[0] : box;
   var barEl = document.querySelector('.bar');
-  var y = window.scrollY + box.getBoundingClientRect().top - (barEl ? barEl.offsetHeight : 0) - 12;
+  var y = window.scrollY + target.getBoundingClientRect().top - (barEl ? barEl.offsetHeight : 0) - (spans.length ? 72 : 12);
   window.scrollTo(0, Math.max(0, y));
-  if(flash){ box.classList.add('flash'); setTimeout(function(){ box.classList.remove('flash'); }, 1500); }
+  if(!flash) return;
+  if(spans.length){
+    Array.prototype.forEach.call(spans, function(sp){ sp.classList.add('hlflash'); });
+    setTimeout(function(){ Array.prototype.forEach.call(spans, function(sp){ sp.classList.remove('hlflash'); }); }, 1500);
+  } else { box.classList.add('flash'); setTimeout(function(){ box.classList.remove('flash'); }, 1500); }
 }
-function gotoPara(ch, i, flash){
+function gotoPara(ch, i, flash, hlid){
   closeSheet();                 /* 열려 있던 주석 팝업을 닫고 본문으로 이동합니다 */
   closeDrawerIfMobile();
-  if(S.ch === ch){ scrollToPara(i, flash); }
-  else { S.jump = {ch:ch, i:i, flash:flash}; location.hash = ch; }
+  if(S.ch === ch){ scrollToPara(i, flash, hlid); }
+  else { S.jump = {ch:ch, i:i, flash:flash, hl:hlid}; location.hash = ch; }
 }
 
 /* ── 시트 ─────────────────────────────────────────────── */
@@ -2061,7 +2070,7 @@ document.addEventListener('click', function(e){
   if(li2){
     if(li2.dataset.kind === 'memo'){ gotoMemo(li2.dataset.ch, li2.dataset.memoid); }
     else if(li2.dataset.note){ gotoNote(li2.dataset.ownerch, li2.dataset.note); }
-    else gotoPara(li2.dataset.ch, +li2.dataset.i, true);
+    else gotoPara(li2.dataset.ch, +li2.dataset.i, true, li2.dataset.hlid);
     return;
   }
 
