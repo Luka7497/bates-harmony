@@ -5,6 +5,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="신적 속성의 조화">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
+<!-- UI 서체 Pretendard (SIL OFL) — 받지 못하면 기기의 고딕(Apple SD Gothic Neo)으로 보입니다 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 
 <style>
 /*__KOFONT__*/
@@ -14,28 +16,38 @@
    반응형: 아이폰(단칸) · 아이패드/맥(고정 사이드바 + 넓은 지면)
    ───────────────────────────────────────────────────────── */
 
+/* 색 규칙: 흑백 바탕 · 회색 보조 · 포인트 형광 그린/레드 · 링크 밝은 파랑 · 북마크 레드.
+   다크가 기본이며(설정 '어둡게'), 밝게·기기 설정도 고를 수 있습니다.
+   --rubric·--gilt 는 장식용 회색, --indigo 는 링크 파랑으로 뜻이 바뀌었습니다. */
 :root{
-  --paper:#EDEDE8;
-  --paper-raised:#F7F7F3;
-  --paper-sunk:#E4E4DE;
-  --ink:#191E2B;
-  --ink-soft:#4C5468;
-  --ink-faint:#7C8496;
-  --rule:#D2D2CA;
-  --rule-strong:#B6B7AD;
-  --rubric:#8E3A2E;
-  --rubric-wash:#8e3a2e14;
-  --indigo:#334A75;
-  --indigo-wash:#334a7514;
-  --gilt:#7E6C36;
-  --gilt-wash:#7e6c3618;
-  --shadow:0 1px 2px #191e2b0f, 0 8px 24px -12px #191e2b26;
-  --sheet-scrim:#191e2b52;
+  --paper:#FFFFFF;
+  --paper-raised:#F4F4F5;
+  --paper-sunk:#E9E9EC;
+  --ink:#0B0B0C;
+  --ink-soft:#55565B;
+  --ink-faint:#8B8C92;
+  --rule:#E4E4E7;
+  --rule-strong:#CFCFD4;
+  --rubric:#55565B;
+  --rubric-wash:#0b0b0c0f;
+  --indigo:#0066FF;
+  --indigo-wash:#0b0b0c0d;
+  --gilt:#55565B;
+  --gilt-wash:#0b0b0c12;
+  --shadow:0 1px 2px #0000000d, 0 16px 32px -20px #00000059;
+  --sheet-scrim:#0b0b0c52;
 
-  --hlY:rgba(226,186,58,.42);
-  --hlG:rgba(110,190,142,.40);
-  --hlP:rgba(224,132,162,.40);
-  --hlB:rgba(108,162,222,.40);
+  --green:#39FF14;          /* 포인트 1 · 형광펜 1 · 진도 · 선택 · 주요 버튼 */
+  --red:#FF2D46;            /* 포인트 2 · 형광펜 2 · 북마크 · 지우기 */
+  --on-accent:#0B0B0C;      /* 그린 버튼 위 글자 — 테마와 상관없이 검정 */
+  --link:#0066FF;
+  --link-wash:#0066ff14;
+
+  /* 저장값 g(예전 초록)·p(예전 분홍)는 그대로 두고 보이는 색만 바꿉니다. y·b 도 그린으로 보입니다 */
+  --hlG:rgba(57,255,20,.40);
+  --hlP:rgba(255,45,70,.30);
+  --hlY:var(--hlG);
+  --hlB:var(--hlG);
 
   --fs:23px;
   --lh-ko:1.95;
@@ -44,49 +56,34 @@
 
   --serif-en:'Iowan Old Style','Hoefler Text',Palatino,'Palatino Linotype','Book Antiqua',Georgia,serif;
   --serif-ko:'HBMyeongjo','AppleMyungjo','Nanum Myeongjo','Noto Serif KR','Apple SD Gothic Neo',serif;
-  --sans-ko:'Apple SD Gothic Neo','Pretendard','Noto Sans KR',system-ui,sans-serif;
-  --ui:system-ui,-apple-system,'Apple SD Gothic Neo',sans-serif;
+  --sans-ko:'Pretendard Variable','Pretendard','Apple SD Gothic Neo','Noto Sans KR',system-ui,sans-serif;
+  --ui:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo',system-ui,sans-serif;
   --body-ko:var(--serif-ko);
 }
-
 @media (prefers-color-scheme:dark){
-  :root{
-    --paper:#131620; --paper-raised:#1B1F2B; --paper-sunk:#0E1119;
-    --ink:#DEDDD6; --ink-soft:#A2A8B6; --ink-faint:#767D8D;
-    --rule:#282D3A; --rule-strong:#3A4152;
-    --rubric:#CB7565; --rubric-wash:#cb756519;
-    --indigo:#8AA2CC; --indigo-wash:#8aa2cc19;
-    --gilt:#B39C57; --gilt-wash:#b39c5722;
-    --shadow:0 1px 2px #0006, 0 10px 30px -14px #0009;
-    --sheet-scrim:#05070ba8;
-    --hlY:rgba(232,196,84,.30); --hlG:rgba(120,200,152,.30);
-    --hlP:rgba(230,142,172,.30); --hlB:rgba(120,172,232,.32);
-  }
+  :root:not([data-theme="light"]){ --paper:#000000; --paper-raised:#111113; --paper-sunk:#1C1C1F;
+    --ink:#F4F4F5; --ink-soft:#A1A1AA; --ink-faint:#6B6B73;
+    --rule:#232327; --rule-strong:#3A3A40;
+    --rubric:#A1A1AA; --rubric-wash:#ffffff12;
+    --indigo:#4D94FF; --indigo-wash:#ffffff10;
+    --gilt:#A1A1AA; --gilt-wash:#ffffff14;
+    --link:#4D94FF; --link-wash:#4d94ff1f;
+    --shadow:0 1px 2px #0008, 0 16px 32px -20px #000;
+    --sheet-scrim:#000000b3;
+    --hlG:rgba(57,255,20,.30); --hlP:rgba(255,45,70,.40);
+    color-scheme:dark; }
 }
-:root[data-theme="dark"]{
-  --paper:#131620; --paper-raised:#1B1F2B; --paper-sunk:#0E1119;
-  --ink:#DEDDD6; --ink-soft:#A2A8B6; --ink-faint:#767D8D;
-  --rule:#282D3A; --rule-strong:#3A4152;
-  --rubric:#CB7565; --rubric-wash:#cb756519;
-  --indigo:#8AA2CC; --indigo-wash:#8aa2cc19;
-  --gilt:#B39C57; --gilt-wash:#b39c5722;
-  --shadow:0 1px 2px #0006, 0 10px 30px -14px #0009;
-  --sheet-scrim:#05070ba8;
-  --hlY:rgba(232,196,84,.30); --hlG:rgba(120,200,152,.30);
-  --hlP:rgba(230,142,172,.30); --hlB:rgba(120,172,232,.32);
-}
-:root[data-theme="light"]{
-  --paper:#EDEDE8; --paper-raised:#F7F7F3; --paper-sunk:#E4E4DE;
-  --ink:#191E2B; --ink-soft:#4C5468; --ink-faint:#7C8496;
-  --rule:#D2D2CA; --rule-strong:#B6B7AD;
-  --rubric:#8E3A2E; --rubric-wash:#8e3a2e14;
-  --indigo:#334A75; --indigo-wash:#334a7514;
-  --gilt:#7E6C36; --gilt-wash:#7e6c3618;
-  --shadow:0 1px 2px #191e2b0f, 0 8px 24px -12px #191e2b26;
-  --sheet-scrim:#191e2b52;
-  --hlY:rgba(226,186,58,.42); --hlG:rgba(110,190,142,.40);
-  --hlP:rgba(224,132,162,.40); --hlB:rgba(108,162,222,.40);
-}
+:root[data-theme="dark"]{ --paper:#000000; --paper-raised:#111113; --paper-sunk:#1C1C1F;
+    --ink:#F4F4F5; --ink-soft:#A1A1AA; --ink-faint:#6B6B73;
+    --rule:#232327; --rule-strong:#3A3A40;
+    --rubric:#A1A1AA; --rubric-wash:#ffffff12;
+    --indigo:#4D94FF; --indigo-wash:#ffffff10;
+    --gilt:#A1A1AA; --gilt-wash:#ffffff14;
+    --link:#4D94FF; --link-wash:#4d94ff1f;
+    --shadow:0 1px 2px #0008, 0 16px 32px -20px #000;
+    --sheet-scrim:#000000b3;
+    --hlG:rgba(57,255,20,.30); --hlP:rgba(255,45,70,.40);
+    color-scheme:dark; }
 
 *{box-sizing:border-box}
 html{scroll-padding-top:4rem}
@@ -117,8 +114,8 @@ a{color:var(--indigo)}
 .readbar{display:flex;align-items:center;gap:.6rem;padding:0 .7rem .5rem}
 .readbar__seg{flex:1;display:flex;gap:2px;height:.4rem;min-width:0}
 .pseg{flex:1;background:var(--paper-sunk);border-radius:1.5px;position:relative;overflow:hidden;cursor:pointer}
-.pseg__fill{position:absolute;inset:0 auto 0 0;width:0;background:var(--rubric);transition:width .3s}
-.pseg.cur{box-shadow:inset 0 0 0 1px var(--rubric)}
+.pseg__fill{position:absolute;inset:0 auto 0 0;width:0;background:var(--green);transition:width .3s}
+.pseg.cur{box-shadow:inset 0 0 0 1px var(--green)}
 .pseg:hover{background:var(--indigo-wash)}
 .readbar__pct{flex:none;font-family:var(--ui);font-size:.62rem;letter-spacing:.02em;color:var(--ink-faint);white-space:nowrap;font-variant-numeric:tabular-nums}
 .bar__id{
@@ -134,8 +131,8 @@ a{color:var(--indigo)}
 }
 .iconbtn:hover{background:var(--indigo-wash);color:var(--ink)}
 .iconbtn svg{width:1.15rem;height:1.15rem;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
-#btnBm.on{color:var(--rubric)}
-#btnBm.on svg{fill:var(--rubric);stroke:var(--rubric)}
+#btnBm.on{color:var(--red)}
+#btnBm.on svg{fill:var(--red);stroke:var(--red)}
 
 /* ── 지면 ─────────────────────────────────────────────── */
 main{
@@ -209,7 +206,7 @@ main{
 /* 북마크 표시 리본 */
 .para.is-bm::before{
   content:""; position:absolute; left:-1.15rem; top:.15rem;
-  width:.5rem; height:1.15rem; background:var(--rubric);
+  width:.5rem; height:1.15rem; background:var(--red);
   clip-path:polygon(0 0,100% 0,100% 100%,50% 76%,0 100%);
 }
 /* 이동 시 잠깐 빛나는 강조 */
@@ -255,8 +252,8 @@ body[data-view="ko"] .para.is-open .para__en{display:block}
   padding:.12em .34em; margin:0 .06em; border-radius:.2rem;
   font-weight:600; white-space:nowrap; user-select:none; -webkit-user-select:none;
 }
-.mark--s{color:var(--rubric);background:var(--rubric-wash)}
-.mark--t{color:var(--indigo);background:var(--indigo-wash)}
+.mark--s{color:var(--link);background:var(--link-wash)}
+.mark--t{color:var(--ink-soft);background:var(--indigo-wash)}
 .mark--o{color:var(--gilt);background:var(--gilt-wash)}
 .mark:hover{filter:brightness(.9)}
 
@@ -292,7 +289,7 @@ body[data-view="ko"] .para.is-open .para__en{display:block}
 .drawer__head p{margin:.35rem 0 0;font-family:var(--serif-en);font-style:italic;font-size:.8rem;color:var(--ink-faint)}
 .tabs{display:flex;gap:.25rem;padding:.55rem .7rem;border-bottom:1px solid var(--rule)}
 .tab{flex:1;padding:.5rem .3rem;border-radius:.4rem;font-family:var(--ui);font-size:.75rem;color:var(--ink-faint);white-space:nowrap}
-.tab.on{background:var(--indigo-wash);color:var(--ink);font-weight:600}
+.tab.on{background:var(--green);color:var(--on-accent);font-weight:700}
 .tab .cnt{font-size:.66rem;opacity:.7;margin-left:.2rem}
 .panelwrap{flex:1;display:flex;min-height:0}
 .panel{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-bottom:calc(env(safe-area-inset-bottom) + 2rem)}
@@ -309,26 +306,26 @@ body[data-view="ko"] .para.is-open .para__en{display:block}
   padding:.55rem 1.2rem;text-decoration:none;color:var(--ink-soft);font-size:.88rem;line-height:1.45;
 }
 .toc a:hover{background:var(--indigo-wash);color:var(--ink)}
-.toc a.on{color:var(--ink);background:var(--indigo-wash);box-shadow:inset 2px 0 0 var(--rubric)}
+.toc a.on{color:var(--ink);background:var(--indigo-wash);box-shadow:inset 3px 0 0 var(--green)}
 .toc .rn{font-family:var(--serif-en);font-size:.74rem;color:var(--ink-faint);flex:none;width:2.1rem}
-.toc a.on .rn{color:var(--rubric)}
+.toc a.on .rn{color:var(--ink)}
 .toc .lbl{flex:1}
 .toc a.none .lbl{opacity:.45}
-.toc .dot{flex:none;width:.34rem;height:.34rem;border-radius:50%;background:var(--rubric);align-self:center;opacity:0}
-.toc a.done .dot{opacity:.5}
+.toc .dot{flex:none;width:.34rem;height:.34rem;border-radius:50%;background:var(--green);align-self:center;opacity:0}
+.toc a.done .dot{opacity:.9}
 
 /* 형광펜·북마크 목록 */
 .li{display:flex;gap:.6rem;padding:.7rem 1.1rem;border-bottom:1px solid var(--rule);align-items:flex-start;cursor:pointer}
 .li:hover{background:var(--indigo-wash)}
 .li__dot{flex:none;width:.7rem;height:.7rem;border-radius:2px;margin-top:.3rem}
 .li__dot.d-y{background:var(--hlY)}.li__dot.d-g{background:var(--hlG)}.li__dot.d-p{background:var(--hlP)}.li__dot.d-b{background:var(--hlB)}
-.li__dot.d-bm{background:var(--rubric);border-radius:0;clip-path:polygon(0 0,100% 0,100% 100%,50% 74%,0 100%);width:.55rem;height:.8rem;margin-top:.28rem}
+.li__dot.d-bm{background:var(--red);border-radius:0;clip-path:polygon(0 0,100% 0,100% 100%,50% 74%,0 100%);width:.55rem;height:.8rem;margin-top:.28rem}
 .li__main{flex:1;min-width:0}
 .li__meta{font-family:var(--ui);font-size:.6rem;letter-spacing:.05em;color:var(--ink-faint);margin-bottom:.25rem;display:flex;gap:.4rem;align-items:center;flex-wrap:wrap}
 .li__side{font-size:.58rem;padding:.05rem .32rem;border-radius:.2rem;background:var(--paper-sunk);color:var(--ink-soft)}
 .li__txt{font-size:.85rem;line-height:1.55;color:var(--ink-soft);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;word-break:keep-all}
 .li__x{flex:none;color:var(--ink-faint);width:1.7rem;height:1.7rem;display:grid;place-items:center;border-radius:.35rem;align-self:center}
-.li__x:hover{background:var(--rubric-wash);color:var(--rubric)}
+.li__x:hover{background:var(--rubric-wash);color:var(--red)}
 .li__x svg{width:.95rem;height:.95rem;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round}
 .panel__head{font-family:var(--ui);font-size:.62rem;letter-spacing:.13em;color:var(--rubric);padding:1.1rem 1.1rem .35rem;position:sticky;top:0;background:var(--paper-raised)}
 .panel__sub{font-family:var(--ui);font-size:.6rem;letter-spacing:.08em;color:var(--ink-faint);padding:.75rem 1.1rem .2rem;word-break:keep-all}
@@ -375,7 +372,7 @@ body[data-view="ko"] .para.is-open .para__en{display:block}
 .set__lab{font-family:var(--ui);font-size:.64rem;letter-spacing:.14em;color:var(--ink-faint)}
 .seg{display:flex;gap:.3rem;background:var(--paper-sunk);padding:.22rem;border-radius:.45rem}
 .seg button{flex:1;padding:.5rem .3rem;border-radius:.3rem;font-family:var(--ui);font-size:.78rem;color:var(--ink-soft);white-space:nowrap}
-.seg button.on{background:var(--paper-raised);color:var(--ink);box-shadow:var(--shadow);font-weight:600}
+.seg button.on{background:var(--green);color:var(--on-accent);font-weight:700}
 .legend{display:flex;flex-direction:column;gap:.55rem;font-size:.8rem;color:var(--ink-soft);line-height:1.55;word-break:keep-all}
 .legend div{display:flex;gap:.65rem;align-items:flex-start}
 .legend .mark{vertical-align:0;line-height:1.3;flex:none}
@@ -393,10 +390,34 @@ body[data-view="ko"] .para.is-open .para__en{display:block}
 }
 .hltool.on{display:flex}
 .sw{width:1.55rem;height:1.55rem;border-radius:50%;border:1px solid #0000001f;flex:none}
-.sw--y{background:var(--hlY)}.sw--g{background:var(--hlG)}.sw--p{background:var(--hlP)}.sw--b{background:var(--hlB)}
+.sw--g{background:var(--green)}.sw--p{background:var(--red)}
 .hltool .hlrm{width:1.9rem;height:1.55rem;display:none;place-items:center;color:var(--ink-soft);border-left:1px solid var(--rule);margin-left:.1rem;border-radius:0}
 .hltool[data-mode="edit"] .hlrm{display:grid}
 .hltool .hlrm svg{width:1rem;height:1rem;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round}
+
+.hltool .hlmemo{height:1.55rem;display:flex;align-items:center;gap:.25rem;padding:0 .45rem 0 .5rem;
+  border-left:1px solid var(--rule);margin-left:.1rem;font-family:var(--ui);font-size:.74rem;color:var(--ink)}
+.hltool .hlmemo svg{width:1rem;height:1rem;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.hltool[data-memo="off"] .hlmemo{display:none}
+
+/* 노트 — 본문 대목에 붙인 메모. 점선 밑줄과 끝의 파란 점으로 표시합니다.
+   표시는 ::after 로만 그려, 글자 위치(형광펜·노트 오프셋)에 영향을 주지 않습니다. */
+.memo{text-decoration:underline dotted var(--link);text-decoration-thickness:1.5px;text-underline-offset:.24em;cursor:pointer}
+.memo--end::after{content:"";display:inline-block;width:.42em;height:.42em;margin:0 .06em 0 .14em;vertical-align:.5em;border-radius:50%;background:var(--link)}
+.memota{
+  width:100%;min-height:9rem;margin:0 0 .7rem;padding:.75rem .8rem;resize:vertical;
+  border:1px solid var(--rule-strong);border-radius:.5rem;background:var(--paper);color:var(--ink);
+  font-family:var(--ui);font-size:.95rem;line-height:1.7;
+}
+.memota:focus{outline:none;border-color:var(--green)}
+.memometa{font-family:var(--ui);font-size:.66rem;color:var(--ink-faint);margin:.4rem 0 0}
+.li__dot.d-memo{background:var(--link);border-radius:50%}
+
+/* 글자 크기 */
+.fsrow{display:flex;align-items:center;gap:.5rem}
+.fsrange{flex:1;min-width:0;accent-color:var(--green)}
+.fsbtn{flex:none;width:2.4rem;height:2.2rem;border-radius:.45rem;background:var(--paper-sunk);font-family:var(--ui);font-size:.8rem;color:var(--ink)}
+.fsval{flex:none;width:3.2rem;text-align:right;font-family:var(--ui);font-size:.8rem;color:var(--ink-soft);font-variant-numeric:tabular-nums}
 
 /* 폰에서는 선택 위치에 띄우지 않고 화면 아래에 붙입니다 (사파리 선택 메뉴와 겹치지 않도록) */
 @media (max-width:699px), (hover:none) and (pointer:coarse){
@@ -408,6 +429,7 @@ body[data-view="ko"] .para.is-open .para__en{display:block}
   }
   .hltool .sw{width:2.1rem;height:2.1rem}
   .hltool .hlrm{width:2.4rem;height:2.1rem}
+  .hltool .hlmemo{height:2.1rem;font-size:.85rem;padding:0 .7rem}
 }
 
 /* 토스트 */
@@ -428,10 +450,10 @@ body[data-view="ko"] .para.is-open .para__en{display:block}
 .cover__orn{margin:2.2rem auto;width:6rem;height:1px;background:var(--rule-strong);position:relative}
 .cover__orn::after{content:"❦";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:var(--paper);padding:0 .6rem;color:var(--rubric);font-size:.9rem}
 .startbtn{
-  display:inline-block;text-decoration:none;border:1px solid var(--rubric);color:var(--rubric);
-  border-radius:.35rem;padding:.7rem 1.7rem;font-family:var(--ui);font-size:.85rem;
+  display:inline-block;text-decoration:none;background:var(--green);color:var(--on-accent);
+  border-radius:.6rem;padding:.75rem 1.8rem;font-family:var(--ui);font-size:.9rem;font-weight:700;
 }
-.startbtn:hover{background:var(--rubric);color:var(--paper)}
+.startbtn:hover{filter:brightness(.92)}
 .howto{font-size:.82rem;color:var(--ink-faint);line-height:1.8;margin-top:2.8rem;text-align:left;border-top:1px solid var(--rule);padding-top:1.5rem;word-break:keep-all}
 .howto p{margin:0 0 .8rem}
 .howto b{color:var(--ink-soft);font-weight:600}
@@ -457,13 +479,16 @@ body[data-view="ko"] .para.is-open .para__en{display:block}
   padding:.5rem .6rem;border-radius:.35rem;
   background:var(--paper-raised);color:var(--ink-soft);word-break:keep-all;
 }
-.bkbtn--go{border-color:var(--indigo);color:var(--indigo)}
+.bkbtn--go{background:var(--green);border-color:var(--green);color:var(--on-accent);font-weight:700}
+.bkbtn--go:hover{border-color:var(--green);color:var(--on-accent);filter:brightness(.92)}
+.bkbtn--danger{border-color:var(--red);color:var(--red)}
+.bkbtn--danger:hover{border-color:var(--red);color:var(--red);background:var(--rubric-wash)}
 
 /* 저장소가 막힌 환경에서 뜨는 알림 */
 .stwarn{
   position:fixed;left:.7rem;right:.7rem;bottom:.7rem;z-index:60;
   padding:.85rem 1rem;border-radius:.55rem;
-  background:#8a2b2b;color:#fff;font-size:.82rem;line-height:1.7;
+  background:var(--red);color:#fff;font-size:.82rem;line-height:1.7;
   word-break:keep-all;box-shadow:0 .4rem 1.4rem rgba(0,0,0,.3);
 }
 .stwarn b{color:#fff}
@@ -482,7 +507,7 @@ body[data-view="ko"] .para.is-open .para__en{display:block}
 
 <div class="topbar">
   <div class="bar">
-    <button class="iconbtn" id="btnToc" aria-label="목차·형광펜·북마크"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+    <button class="iconbtn" id="btnToc" aria-label="목차·형광펜·노트·북마크"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
     <div class="bar__id" id="barId">신적 속성의 조화</div>
     <button class="iconbtn" id="btnBm" aria-label="이 자리 북마크"><svg viewBox="0 0 24 24"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4.6L5 21V4a1 1 0 0 1 1-1z"/></svg></button>
     <button class="iconbtn" id="btnView" aria-label="보기 방식 전환"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="7" height="16" rx="1"/><rect x="14" y="4" width="7" height="16" rx="1"/></svg></button>
@@ -498,7 +523,7 @@ body[data-view="ko"] .para.is-open .para__en{display:block}
 
 <div class="scrim" id="scrim"></div>
 
-<nav class="drawer" id="drawer" aria-label="목차·형광펜·북마크">
+<nav class="drawer" id="drawer" aria-label="목차·형광펜·노트·북마크">
   <div class="drawer__head">
     <h1>신적 속성의 조화</h1>
     <p>The Harmony of the Divine Attributes · 1674</p>
@@ -506,11 +531,13 @@ body[data-view="ko"] .para.is-open .para__en{display:block}
   <div class="tabs" id="tabs">
     <button class="tab on" data-tab="toc">목차</button>
     <button class="tab" data-tab="hl">형광펜<span class="cnt" id="cntHl"></span></button>
+    <button class="tab" data-tab="memo">노트<span class="cnt" id="cntMemo"></span></button>
     <button class="tab" data-tab="bm">북마크<span class="cnt" id="cntBm"></span></button>
   </div>
   <div class="panelwrap">
     <div class="toc panel" id="toc" data-panel="toc"></div>
     <div class="panel" id="hlList" data-panel="hl" hidden></div>
+    <div class="panel" id="memoList" data-panel="memo" hidden></div>
     <div class="panel" id="bmList" data-panel="bm" hidden></div>
   </div>
 </nav>
@@ -526,10 +553,9 @@ body[data-view="ko"] .para.is-open .para__en{display:block}
 </div>
 
 <div class="hltool" id="hltool" data-mode="add" aria-hidden="true">
-  <button class="sw sw--y" data-c="y" aria-label="노란 형광펜"></button>
-  <button class="sw sw--g" data-c="g" aria-label="초록 형광펜"></button>
-  <button class="sw sw--p" data-c="p" aria-label="분홍 형광펜"></button>
-  <button class="sw sw--b" data-c="b" aria-label="파란 형광펜"></button>
+  <button class="sw sw--g" data-c="g" aria-label="그린 형광펜"></button>
+  <button class="sw sw--p" data-c="p" aria-label="레드 형광펜"></button>
+  <button class="hlmemo" aria-label="노트 쓰기"><svg viewBox="0 0 24 24"><path d="M5 4h10l4 4v12H5zM15 4v4h4M8 12h8M8 16h5"/></svg><span>노트</span></button>
   <button class="hlrm" aria-label="형광펜 지우기"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>
 </div>
 
@@ -603,9 +629,10 @@ var S = {
   view: LS.get('hb.view') || 'ko',
   fs: +(LS.get('hb.fs') || 23),
   koFont: LS.get('hb.kofont') || 'serif',
-  theme: LS.get('hb.theme') || 'auto',
+  theme: LS.get('hb.theme') || 'dark',      /* 다크가 기본 */
   read: LS.json('hb.read', {}),
   hl: LS.json('hb.hl', {}),
+  memo: LS.json('hb.memo', {}),   /* 노트 — 형광펜과 같은 키(장)·같은 글자 위치 규칙 */
   bm: LS.json('hb.bm', []),
   del: LS.json('hb.del', {h:{}, b:{}}),
   tab: 'toc',
@@ -613,8 +640,11 @@ var S = {
   pending: null,
   noteId: null,    /* 지금 열려 있는 주석 id (없으면 null) */
   noteCh: null,    /* 그 주석이 속한 장 — 형광펜 저장 키를 만들 때 씁니다 */
-  jumpNote: null   /* 다른 장으로 이동한 뒤 열어야 할 주석 (형광펜 목록에서 이동) */
+  jumpNote: null,  /* 다른 장으로 이동한 뒤 열어야 할 주석 (형광펜 목록에서 이동) */
+  jumpMemo: null,  /* 다른 장으로 이동한 뒤 열어야 할 노트 */
+  memoOpen: null   /* 지금 열려 있는 노트 시트 {m, isNew, ta} */
 };
+if(!S.del.m) S.del.m = {};   /* 지운 노트 기록 (예전 기록에는 없음) */
 var ORDER = DATA.order, CH = DATA.chapters, PARTS = DATA.parts;
 var BUILD = '/*__BUILD__*/';   /* 빌드 시각 — 설정 화면에 표시해 기기별 최신 여부를 확인합니다 */
 /* 성경 약어(주석 m 필드) → 정식 책이름. 주석 팝업에 장·절을 온전한 이름으로 보여 줍니다 */
@@ -667,6 +697,7 @@ function render(id, scroll){
   if(S.jump && S.jump.ch === id){ scrollToPara(S.jump.i, S.jump.flash); S.jump = null; }
   else if(scroll !== false) window.scrollTo(0, 0);
   if(S.jumpNote && S.jumpNote.ch === id){ var _nid = S.jumpNote.note; S.jumpNote = null; showNote(_nid); }
+  if(S.jumpMemo && S.jumpMemo.ch === id){ var _m = findMemo(S.jumpMemo.id); S.jumpMemo = null; if(_m) openMemoSheet(_m, false); }
   updProgress(); updBmBtn();
 }
 function rerender(){ var y = window.scrollY; render(S.ch, false); window.scrollTo(0, y); }
@@ -708,6 +739,7 @@ function buildChapter(page, c, id){
   document.getElementById('barId').textContent =
     (c.roman ? c.roman.replace(/\..*$/, '') + ' · ' : '') + (c.title_ko || c.title);
 
+  applyMemos(page);
   applyHls(page);
   markBmParas();
 }
@@ -738,8 +770,8 @@ function buildCover(page){
     el('span', {cls:'mark mark--o', text:'라'}), txt(' 라틴어·헬라어·히브리어 원어입니다.')
   ]));
   how.appendChild(el('p', {}, [
-    el('b', {text:'형광펜 · 북마크. '}),
-    txt('본문에서 원하는 대목을 손가락이나 마우스로 그어 선택하면 색 고르는 작은 판이 떠서 형광펜으로 칠할 수 있습니다. 칠한 대목과 북마크(상단 리본 아이콘)는 왼쪽 서랍의 ‘형광펜 · 북마크’ 칸에 모여, 눌러서 바로 그 자리로 갑니다.')
+    el('b', {text:'형광펜 · 노트 · 북마크. '}),
+    txt('본문에서 원하는 대목을 손가락이나 마우스로 그어 선택하면 작은 판이 떠서 형광펜(그린·레드)으로 칠하거나 ‘노트’로 생각을 적어 둘 수 있습니다. 칠한 대목, 노트, 북마크(상단 리본 아이콘)는 왼쪽 서랍의 ‘형광펜 · 노트 · 북마크’ 칸에 모여, 눌러서 바로 그 자리로 갑니다.')
   ]));
   how.appendChild(el('p', {}, [
     el('b', {text:'기기. '}),
@@ -807,21 +839,23 @@ function offsetOf(container, node, off){
   try { r.setEnd(node, off); } catch(e){ return 0; }
   return r.toString().length;
 }
-/* [a,b) 구간을 span.hl 로 감쌉니다 (마커 텍스트는 건너뜀) */
-function wrapRange(container, a, b, id, color){
+/* [a,b) 구간을 span.hl 로 감쌉니다 (마커 텍스트는 건너뜀).
+   kind 가 'memo' 면 노트 표시용 span.memo 로 감쌉니다. 노트를 먼저 감싸고 형광펜을 그 안에 칠합니다. */
+function wrapRange(container, a, b, id, color, kind){
+  var memo = kind === 'memo';
   var walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
   var acc = 0, node, jobs = [];
   while((node = walker.nextNode())){
     var len = node.nodeValue.length, ns = acc, ne = acc + len; acc = ne;
     if(ne <= a || ns >= b) continue;
-    if(node.parentNode && node.parentNode.closest && node.parentNode.closest('.mark, .hl')) continue;
+    if(node.parentNode && node.parentNode.closest && node.parentNode.closest(memo ? '.mark, .memo' : '.mark, .hl')) continue;
     jobs.push([node, Math.max(a, ns) - ns, Math.min(b, ne) - ns]);
   }
   jobs.forEach(function(j){
     var tn = j[0], s = j[1], e = j[2];
     var mid = (s > 0) ? tn.splitText(s) : tn;
     if(e - s < mid.nodeValue.length) mid.splitText(e - s);
-    var span = el('span', {cls:'hl hl--' + color, 'data-hl':id});
+    var span = memo ? el('span', {cls:'memo', 'data-memo':id}) : el('span', {cls:'hl hl--' + color, 'data-hl':id});
     mid.parentNode.insertBefore(span, mid);
     span.appendChild(mid);
   });
@@ -887,7 +921,127 @@ function openHlEdit(span){
   var id = span.dataset.hl;
   S.pending = {mode:'edit', ch:id.split('|')[0], id:id};
   document.getElementById('hltool').dataset.mode = 'edit';
+  document.getElementById('hltool').dataset.memo = S.pending.ch.indexOf('n:') === 0 ? 'off' : 'on';
   showToolAt(span.getBoundingClientRect());
+}
+
+/* ── 노트 ─────────────────────────────────────────────────
+   본문 대목에 붙이는 메모입니다. 형광펜처럼 장 키(S.memo['6'])와 글자 위치(a, b)로 묶이고,
+   여러 문단에 걸쳐 고르면 문단마다 조각(parts)으로 둡니다.
+   {id, side, parts:[{i,a,b}], t:고른 글자, body:메모, ts:만든 시각, u:고친 시각} */
+function saveMemo(){
+  for(var k in S.memo){ if(!S.memo[k] || !S.memo[k].length) delete S.memo[k]; }
+  LS.set('hb.memo', JSON.stringify(S.memo));
+  updCounts();
+  if(window.SYNC) SYNC.schedule();
+}
+function tombMemo(id){ S.del.m[id] = Date.now(); saveDel(); }
+function memoDead(m){ var t = S.del.m[m.id]; return !!t && t >= (m.u || 0); }
+function findMemo(id){
+  var arr = S.memo[String(id).split('|')[0]] || [];
+  for(var j = 0; j < arr.length; j++){ if(arr[j].id === id) return arr[j]; }
+  return null;
+}
+function memoDraft(ch, side, parts){
+  return {ch:ch, side:side,
+    parts:parts.map(function(pt){ return {i:pt.i, a:pt.a, b:pt.b}; }),
+    t:parts.map(function(pt){ return pt.text; }).join(' … ')};
+}
+function applyMemos(page){
+  var arr = S.memo[S.ch]; if(!arr) return;
+  arr.forEach(function(m){
+    m.parts.forEach(function(pt){
+      var box = page.querySelector('.para[data-i="' + pt.i + '"]'); if(!box) return;
+      var c = box.querySelector(m.side === 'ko' ? '.para__ko' : '.para__en'); if(!c) return;
+      wrapRange(c, pt.a, pt.b, m.id, null, 'memo');
+    });
+    var pieces = page.querySelectorAll('.memo[data-memo="' + m.id + '"]');
+    if(pieces.length) pieces[pieces.length - 1].classList.add('memo--end');
+  });
+}
+/* 칠한 형광펜을 눌러 노트 버튼을 누르면: 그 자리에 걸친 노트가 있으면 열고, 없으면 새로 씁니다 */
+function memoForHl(ch, hlid){
+  var h = null;
+  (S.hl[ch] || []).forEach(function(x){ if(x.id === hlid) h = x; });
+  if(!h) return;
+  var hit = null;
+  (S.memo[ch] || []).forEach(function(m){
+    if(hit || m.side !== h.side) return;
+    if(m.parts.some(function(pt){ return pt.i === h.i && pt.a < h.b && h.a < pt.b; })) hit = m;
+  });
+  if(hit) openMemoSheet(hit, false);
+  else openMemoSheet(memoDraft(ch, h.side, [{i:h.i, a:h.a, b:h.b, text:h.t}]), true);
+}
+function fmtDate(t){
+  var d = new Date(t), p2 = function(n){ return (n < 10 ? '0' : '') + n; };
+  return d.getFullYear() + '. ' + (d.getMonth() + 1) + '. ' + d.getDate() + '. ' + p2(d.getHours()) + ':' + p2(d.getMinutes());
+}
+function openMemoSheet(m, isNew){
+  var ch = isNew ? m.ch : m.id.split('|')[0];
+  var body = openSheet('노트', chLabel(ch), 'm');
+  body.appendChild(el('div', {cls:'quote'}, [el('p', {cls:'k', text:m.t})]));
+  var ta = el('textarea', {cls:'memota', placeholder:'이 대목에 대한 생각을 적어 두세요'});
+  ta.value = m.body || '';
+  body.appendChild(ta);
+  var sv = el('button', {cls:'bkbtn bkbtn--go', text:'저장'});
+  sv.onclick = function(){ closeSheet(); };          /* 닫을 때 저장됩니다 */
+  var btns = [sv];
+  if(!isNew){
+    var rm = el('button', {cls:'bkbtn bkbtn--danger', text:'노트 지우기'});
+    rm.onclick = function(){
+      if(!confirm('이 노트를 지울까요?')) return;
+      S.memoOpen = null;
+      removeMemoEntry(m.id);
+      closeSheet(); refreshMemoView(ch);
+      toast('노트를 지웠어요');
+    };
+    btns.push(rm);
+  }
+  body.appendChild(el('div', {cls:'bkrow'}, btns));
+  if(!isNew) body.appendChild(el('p', {cls:'memometa',
+    text:'적은 때 ' + fmtDate(m.ts) + (m.u && m.u !== m.ts ? ' · 고친 때 ' + fmtDate(m.u) : '')}));
+  S.memoOpen = {m:m, isNew:isNew, ch:ch, ta:ta};
+  if(isNew) setTimeout(function(){ try{ ta.focus(); }catch(e){} }, 360);
+}
+/* 열린 노트를 저장합니다. 바뀐 게 있으면 true */
+function commitMemo(o){
+  var text = o.ta.value.replace(/\s+$/, '');
+  if(o.isNew){
+    if(!text.trim()) return false;                   /* 빈 노트는 만들지 않습니다 */
+    var now = Date.now();
+    var m = {id:o.ch + '|m|' + now.toString(36) + Math.random().toString(36).slice(2, 6),
+             side:o.m.side, parts:o.m.parts, t:o.m.t, body:text, ts:now, u:now};
+    (S.memo[o.ch] || (S.memo[o.ch] = [])).push(m);
+  } else {
+    if(text === o.m.body) return false;
+    if(!text.trim()){ removeMemoEntry(o.m.id); return true; }   /* 내용을 다 지우면 노트도 지웁니다 */
+    o.m.body = text; o.m.u = Date.now();
+  }
+  saveMemo();
+  return true;
+}
+function flushMemo(){
+  var o = S.memoOpen; if(!o) return;
+  S.memoOpen = null;
+  if(commitMemo(o)){
+    toast('노트를 저장했어요');
+    setTimeout(function(){ refreshMemoView(o.ch); }, 0);   /* 시트를 닫는 도중에 다시 그리지 않도록 미룹니다 */
+  }
+}
+function removeMemoEntry(id){
+  var ch = id.split('|')[0];
+  S.memo[ch] = (S.memo[ch] || []).filter(function(m){ return m.id !== id; });
+  tombMemo(id); saveMemo();
+}
+function refreshMemoView(ch){
+  if(ch === S.ch) rerender();
+  if(S.tab === 'memo') buildMemoPanel();
+}
+function gotoMemo(ch, id){
+  closeDrawerIfMobile();
+  var m = findMemo(id); if(!m) return;
+  if(S.ch === ch){ scrollToPara(m.parts[0].i, true); openMemoSheet(m, false); }
+  else { S.jump = {ch:ch, i:m.parts[0].i, flash:true}; S.jumpMemo = {ch:ch, id:id}; location.hash = ch; }
 }
 
 /* 선택 감지 → 툴바 */
@@ -938,6 +1092,7 @@ function onSelDone(){
       if(!nparts.length){ hideTool(); return; }
       S.pending = {mode:'add', ch:noteHlKey(S.noteCh, S.noteId), side:'nb', parts:nparts};
       document.getElementById('hltool').dataset.mode = 'add';
+      document.getElementById('hltool').dataset.memo = 'off';   /* 노트는 본문에만 답니다 */
       showToolAt(range.getBoundingClientRect());
       return;
     }
@@ -954,6 +1109,7 @@ function onSelDone(){
     if(!parts.length){ hideTool(); return; }
     S.pending = {mode:'add', ch:S.ch, side:side, parts:parts};
     document.getElementById('hltool').dataset.mode = 'add';
+    document.getElementById('hltool').dataset.memo = 'on';
     showToolAt(range.getBoundingClientRect());
   }, 8);
 }
@@ -1061,17 +1217,19 @@ function exportBackup(){
 function importBackup(){ var inp = document.getElementById('fileImport'); inp.value = ''; inp.click(); }
 /* 지금 기록 전체를 하나로 묶습니다 (백업 파일과 동기화가 같은 형식을 씁니다) */
 function snapshot(){
-  return {app:'hb', v:2, hl:S.hl, bm:S.bm, read:S.read, del:S.del};
+  /* memo 는 새로 더한 칸입니다. 예전 앱은 이 칸을 모른 채 무시합니다 */
+  return {app:'hb', v:2, hl:S.hl, bm:S.bm, read:S.read, del:S.del, memo:S.memo};
 }
 /* 다른 기기(또는 백업 파일)의 기록을 지금 기록과 합칩니다.
    덮어쓰지 않고 합집합을 취하되, 어느 한쪽에서 지운 것은 지운 상태를 지킵니다. */
 function applyData(d){
-  var addH = 0, addB = 0;
-  if(!S.del) S.del = {h:{}, b:{}};
+  var addH = 0, addB = 0, addM = 0;
+  if(!S.del) S.del = {h:{}, b:{}, m:{}};
 
   /* 삭제 기록부터 합칩니다 */
   if(d.del){
-    ['h','b'].forEach(function(kind){
+    ['h','b','m'].forEach(function(kind){
+      if(!S.del[kind]) S.del[kind] = {};
       var src = d.del[kind] || {};
       for(var k in src){
         if(!S.del[kind][k] || S.del[kind][k] < src[k]) S.del[kind][k] = src[k];
@@ -1099,21 +1257,36 @@ function applyData(d){
 
   if(d.read) for(var c in d.read){ if(d.read[c]) S.read[c] = 1; }
 
-  saveDel(); saveHl(); saveBm(); LS.set('hb.read', JSON.stringify(S.read));
-  return {h:addH, b:addB};
+  /* 노트: 없는 것은 더하고, 같은 노트면 더 나중에 고친 쪽 내용을 씁니다.
+     지운 기록보다 나중에 고친 노트는 살립니다 */
+  if(d.memo) for(var mc in d.memo){
+    var marr = S.memo[mc] || (S.memo[mc] = []);
+    (d.memo[mc] || []).forEach(function(m){
+      if(!m || !m.id || !m.parts || memoDead(m)) return;
+      var cur = null;
+      for(var j = 0; j < marr.length; j++){ if(marr[j].id === m.id){ cur = marr[j]; break; } }
+      if(!cur){ marr.push(m); addM++; }
+      else if((m.u || 0) > (cur.u || 0)){ cur.body = m.body; cur.u = m.u; }
+    });
+  }
+  for(var mc2 in S.memo){ S.memo[mc2] = (S.memo[mc2] || []).filter(function(m){ return !memoDead(m); }); }
+
+  saveDel(); saveHl(); saveBm(); saveMemo(); LS.set('hb.read', JSON.stringify(S.read));
+  return {h:addH, b:addB, m:addM};
 }
 /* 화면을 합친 결과로 새로 그립니다 */
 function refreshAfterMerge(){
   buildToc(); if(S.ch && S.ch !== 'cover') rerender();
   if(S.tab === 'hl') buildHlPanel();
   if(S.tab === 'bm') buildBmPanel();
+  if(S.tab === 'memo') buildMemoPanel();
   updReadbar(0);
 }
 function mergeBackup(d){
   if(!d || d.app !== 'hb'){ toast('알맞은 백업 파일이 아니에요'); return; }
   var n = applyData(d);
   refreshAfterMerge();
-  toast('불러왔어요 · 형광펜 ' + n.h + '개 · 북마크 ' + n.b + '개 추가');
+  toast('불러왔어요 · 형광펜 ' + n.h + '개 · 노트 ' + n.m + '개 · 북마크 ' + n.b + '개 추가');
   SYNC.schedule();
 }
 
@@ -1157,7 +1330,13 @@ var SYNC = (function(){
     var del = o.del || {h:{}, b:{}};
     var dh = Object.keys(del.h || {}).sort().join(',');
     var db = Object.keys(del.b || {}).sort().join(',');
-    return hp + '||' + bm + '||' + rd + '||' + dh + '||' + db;
+    var memo = o.memo || {};
+    var mp = Object.keys(memo).sort().map(function(k){
+      var arr = (memo[k] || []).slice().sort(function(a,b){ return a.id < b.id ? -1 : a.id > b.id ? 1 : 0; });
+      return k + ':' + arr.map(function(m){ return m.id + '@' + (m.u || 0); }).join(',');
+    }).join(';');
+    var dm = Object.keys(del.m || {}).sort().join(',');
+    return hp + '||' + bm + '||' + rd + '||' + dh + '||' + db + '||' + mp + '||' + dm;
   }
   var pushedSig = null;   /* 마지막으로 서버와 맞춘 지문 */
   function dirty(){ return canon(snapshot()) !== pushedSig; }
@@ -1174,7 +1353,7 @@ var SYNC = (function(){
         return r.json();
       })
       .then(function(remote){
-        var n = {h:0, b:0};
+        var n = {h:0, b:0, m:0};
         var remoteOk = remote && remote.app === 'hb';
         if(remoteOk) n = applyData(remote);
         var localSig = canon(snapshot());
@@ -1195,9 +1374,9 @@ var SYNC = (function(){
       })
       .then(function(res){
         stamp(Date.now());
-        if(res.n.h || res.n.b){
+        if(res.n.h || res.n.b || res.n.m){
           refreshAfterMerge();
-          if(!quiet) toast('동기화 완료 · 형광펜 ' + res.n.h + '개 · 북마크 ' + res.n.b + '개 받음');
+          if(!quiet) toast('동기화 완료 · 형광펜 ' + res.n.h + '개 · 노트 ' + (res.n.m || 0) + '개 · 북마크 ' + res.n.b + '개 받음');
         } else if(!quiet){
           toast(res.pushed ? '동기화 완료 · 이 기기 기록을 올렸어요' : '동기화 완료 · 이미 최신입니다');
         }
@@ -1265,7 +1444,7 @@ var SYNC = (function(){
 })();
 
 /* ── 목록 패널 ────────────────────────────────────────── */
-var CLABEL = {y:'노랑', g:'초록', p:'분홍', b:'파랑'};
+var CLABEL = {g:'그린', p:'레드', y:'그린', b:'그린'};   /* 예전 노랑·파랑 기록도 그린으로 보입니다 */
 function chLabel(ch){
   var c = CH[ch]; if(!c) return '';
   return (c.roman ? c.roman.replace('.', '') + '. ' : '') + (c.title_ko || c.title);
@@ -1276,6 +1455,7 @@ function emptyPanel(list, icon, msg){
 function liItem(opts){
   var li = el('div', {cls:'li', 'data-ch':opts.ch, 'data-i':opts.i});
   if(opts.hlid) li.setAttribute('data-hlid', opts.hlid);
+  if(opts.memo) li.setAttribute('data-memoid', opts.memo);
   li.setAttribute('data-kind', opts.kind);
   if(opts.note){ li.setAttribute('data-note', opts.note); li.setAttribute('data-ownerch', opts.ownerCh); }
   var meta = el('div', {cls:'li__meta'}, [ el('span', {text:opts.meta}) ]);
@@ -1358,6 +1538,20 @@ function gotoNote(ownerCh, noteId){
   if(S.ch === ownerCh){ showNote(noteId); }
   else { S.jumpNote = {ch:ownerCh, note:noteId}; location.hash = ownerCh; }
 }
+function buildMemoPanel(){
+  var list = document.getElementById('memoList'); clear(list);
+  var any = false;
+  ORDER.forEach(function(ch){
+    var arr = S.memo[ch]; if(!arr || !arr.length) return;
+    any = true;
+    list.appendChild(el('div', {cls:'panel__head', text:chLabel(ch)}));
+    arr.slice().sort(function(x, y){ return (x.parts[0].i - y.parts[0].i) || (x.parts[0].a - y.parts[0].a); }).forEach(function(m){
+      var q = m.t.length > 30 ? m.t.slice(0, 30) + '…' : m.t;
+      list.appendChild(liItem({kind:'memo', ch:ch, i:m.parts[0].i, memo:m.id, dot:'d-memo', meta:'“' + q + '”', text:m.body}));
+    });
+  });
+  if(!any) emptyPanel(list, 'M5 4h10l4 4v12H5zM15 4v4h4M8 12h8M8 16h5', '아직 노트가 없습니다.\n본문을 그어 선택한 뒤 ‘노트’를 누르면\n그 대목에 생각을 적어 둘 수 있습니다.');
+}
 function buildBmPanel(){
   var list = document.getElementById('bmList'); clear(list);
   if(!S.bm.length){
@@ -1373,18 +1567,21 @@ function buildBmPanel(){
 }
 function updCounts(){
   var hc = 0; for(var k in S.hl){ hc += (S.hl[k] ? S.hl[k].length : 0); }
-  var e1 = document.getElementById('cntHl'), e2 = document.getElementById('cntBm');
+  var e1 = document.getElementById('cntHl'), e2 = document.getElementById('cntBm'), e3 = document.getElementById('cntMemo');
+  var mc = 0; for(var k2 in S.memo){ mc += (S.memo[k2] ? S.memo[k2].length : 0); }
   if(e1) e1.textContent = hc ? '·' + hc : '';
+  if(e3) e3.textContent = mc ? '·' + mc : '';
   if(e2) e2.textContent = S.bm.length ? '·' + S.bm.length : '';
 }
 function switchTab(name){
   S.tab = name;
   Array.prototype.forEach.call(document.querySelectorAll('.tab'), function(b){ b.classList.toggle('on', b.dataset.tab === name); });
-  ['toc','hl','bm'].forEach(function(p){
+  ['toc','hl','memo','bm'].forEach(function(p){
     document.querySelector('.panel[data-panel="' + p + '"]').hidden = (p !== name);
   });
   if(name === 'hl') buildHlPanel();
   if(name === 'bm') buildBmPanel();
+  if(name === 'memo') buildMemoPanel();
 }
 
 /* ── 이동 ─────────────────────────────────────────────── */
@@ -1404,11 +1601,13 @@ function gotoPara(ch, i, flash){
 
 /* ── 시트 ─────────────────────────────────────────────── */
 function openSheet(kind, title, kindKey){
+  flushMemo();                       /* 열려 있던 노트는 저장하고 넘어갑니다 */
   S.noteId = null; S.noteCh = null;  /* showNote 가 아닌 다른 시트라면 주석 컨텍스트는 없습니다 */
   var k = document.getElementById('sheetKind');
   k.textContent = kind;
-  k.style.background = kindKey === 's' ? 'var(--rubric-wash)' : kindKey === 'o' ? 'var(--gilt-wash)' : 'var(--indigo-wash)';
-  k.style.color = kindKey === 's' ? 'var(--rubric)' : kindKey === 'o' ? 'var(--gilt)' : 'var(--indigo)';
+  var blue = kindKey === 's' || kindKey === 'm';   /* 성경 주석과 노트는 링크 파랑 */
+  k.style.background = blue ? 'var(--link-wash)' : 'var(--indigo-wash)';
+  k.style.color = blue ? 'var(--link)' : 'var(--ink-soft)';
   document.getElementById('sheetTtl').textContent = title;
   var body = document.getElementById('sheetBody');
   clear(body);
@@ -1417,6 +1616,7 @@ function openSheet(kind, title, kindKey){
   return body;
 }
 function closeSheet(){
+  flushMemo();
   document.getElementById('sheet').classList.remove('on');
   if(window.innerWidth < 1024) document.getElementById('scrim').classList.remove('on');
 }
@@ -1533,9 +1733,9 @@ function openSettings(){
   var body = openSheet('설정', '읽기 환경', 't');
   var wrap = el('div', {cls:'set'});
   wrap.appendChild(row('보기 방식', seg('view', [['ko','한글'],['both','나란히'],['en','영어']], S.view)));
-  wrap.appendChild(row('글자 크기', seg('fs', [[20,'작게'],[23,'보통'],[27,'크게'],[31,'아주 크게']], S.fs)));
-  wrap.appendChild(row('한글 서체', seg('kofont', [['serif','명조'],['sans','고딕']], S.koFont)));
-  wrap.appendChild(row('화면', seg('theme', [['auto','기기 설정'],['light','밝게'],['dark','어둡게']], S.theme)));
+  wrap.appendChild(row('글자 크기', fsControl()));
+  wrap.appendChild(row('본문 서체', seg('kofont', [['serif','나눔명조'],['noto','본명조'],['sans','고딕']], S.koFont)));
+  wrap.appendChild(row('화면', seg('theme', [['dark','어둡게'],['light','밝게'],['auto','기기 설정']], S.theme)));
 
   var eBtn = el('button', {cls:'bkbtn', text:'⤓  백업 내보내기'}); eBtn.onclick = exportBackup;
   var iBtn = el('button', {cls:'bkbtn', text:'⤒  백업 불러오기'}); iBtn.onclick = importBackup;
@@ -1553,11 +1753,29 @@ function openSettings(){
    ['mark--o','라','라틴어·헬라어·히브리어 원어 풀이.']].forEach(function(r){
     lg.appendChild(el('div', {}, [el('span', {cls:'mark ' + r[0], text:r[1]}), el('span', {text:r[2]})]));
   });
-  lg.appendChild(el('div', {}, [el('span', {cls:'sw sw--y'}), el('span', {text:'본문을 그어 선택하면 형광펜 색을 고를 수 있습니다. 여러 문단에 걸쳐 그어도 됩니다. 칠한 곳을 다시 누르면 색을 바꾸거나 지웁니다.'})]));
+  lg.appendChild(el('div', {}, [el('span', {cls:'sw sw--g'}), el('span', {text:'본문을 그어 선택하면 형광펜(그린·레드)을 고를 수 있습니다. 여러 문단에 걸쳐 그어도 됩니다. 칠한 곳을 다시 누르면 색을 바꾸거나 지웁니다.'})]));
+  lg.appendChild(el('div', {}, [el('span', {cls:'sw', style:'background:var(--link)'}), el('span', {text:'고른 대목에 ‘노트’로 생각을 적어 둘 수 있습니다. 노트가 붙은 곳은 점선 밑줄과 파란 점으로 보이고, 누르면 다시 열립니다. 모든 노트는 목차 서랍의 ‘노트’ 칸에 모입니다.'})]));
   wrap.appendChild(row('표지 안내', lg));
 
   wrap.appendChild(el('p', {cls:'bkhint', text:'앱 버전 ' + BUILD + ' · 두 기기의 버전이 다르면, 오래된 기기에서 홈 화면 앱을 지웠다가 사파리에서 다시 추가해 주세요.'}));
   body.appendChild(wrap);
+}
+/* 글자 크기: 16~40px 슬라이더와 한 단계씩 버튼 */
+var FS_MIN = 16, FS_MAX = 40;
+function fsControl(){
+  var rng = el('input', {type:'range', cls:'fsrange', min:String(FS_MIN), max:String(FS_MAX), step:'1', 'aria-label':'글자 크기'});
+  rng.value = S.fs;
+  var val = el('span', {cls:'fsval', text:S.fs + 'px'});
+  function setFs(v){
+    v = Math.max(FS_MIN, Math.min(FS_MAX, Math.round(v)));
+    rng.value = v; val.textContent = v + 'px'; set('fs', v);
+  }
+  var minus = el('button', {cls:'fsbtn', text:'가−', 'aria-label':'글자 작게'});
+  var plus = el('button', {cls:'fsbtn', text:'가+', 'aria-label':'글자 크게'});
+  minus.onclick = function(){ setFs(S.fs - 1); };
+  plus.onclick = function(){ setFs(S.fs + 1); };
+  rng.addEventListener('input', function(){ setFs(+rng.value); });
+  return el('div', {cls:'fsrow'}, [minus, rng, plus, val]);
 }
 function row(label, inner){
   return el('div', {cls:'set__row'}, [el('div', {cls:'set__lab', text:label}), inner]);
@@ -1629,10 +1847,18 @@ function closeDrawerIfMobile(){ if(!isWide()) setNav(false); }
 function closeAll(){ closeSheet(); closeDrawerIfMobile(); hideTool(); }
 
 /* ── 설정 적용 ────────────────────────────────────────── */
+/* 본문 서체: 나눔명조(앱에 내장) · 본명조(Noto Serif KR, 고를 때만 받아 옴) · 고딕(Pretendard) */
+var KOFONT = {serif:'var(--serif-ko)', noto:"'Noto Serif KR', var(--serif-ko)", sans:'var(--sans-ko)'};
+function loadNotoSerif(){
+  if(document.getElementById('notoSerif')) return;
+  document.head.appendChild(el('link', {id:'notoSerif', rel:'stylesheet',
+    href:'https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&display=swap'}));
+}
 function apply(){
   document.body.dataset.view = S.view;
   document.documentElement.style.setProperty('--fs', S.fs + 'px');
-  document.documentElement.style.setProperty('--body-ko', S.koFont === 'sans' ? 'var(--sans-ko)' : 'var(--serif-ko)');
+  document.documentElement.style.setProperty('--body-ko', KOFONT[S.koFont] || KOFONT.serif);
+  if(S.koFont === 'noto') loadNotoSerif();
   if(S.theme === 'auto') document.documentElement.removeAttribute('data-theme');
   else document.documentElement.dataset.theme = S.theme;
 }
@@ -1708,6 +1934,11 @@ document.addEventListener('click', function(e){
       removeHlEntry(ch, li.dataset.hlid);
       refreshHlView(ch);
       buildHlPanel();
+    } else if(li.dataset.kind === 'memo'){
+      if(!confirm('이 노트를 지울까요?')) return;
+      removeMemoEntry(li.dataset.memoid);
+      refreshMemoView(li.dataset.ch);
+      buildMemoPanel();
     } else {
       removeBm(li.dataset.ch, +li.dataset.i);
       buildBmPanel();
@@ -1716,7 +1947,8 @@ document.addEventListener('click', function(e){
   }
   var li2 = e.target.closest('.li');
   if(li2){
-    if(li2.dataset.note){ gotoNote(li2.dataset.ownerch, li2.dataset.note); }
+    if(li2.dataset.kind === 'memo'){ gotoMemo(li2.dataset.ch, li2.dataset.memoid); }
+    else if(li2.dataset.note){ gotoNote(li2.dataset.ownerch, li2.dataset.note); }
     else gotoPara(li2.dataset.ch, +li2.dataset.i, true);
     return;
   }
@@ -1726,6 +1958,16 @@ document.addEventListener('click', function(e){
 
   var hl = e.target.closest('.hl[data-hl]');
   if(hl){ e.stopPropagation(); openHlEdit(hl); return; }
+
+  /* 형광펜 없이 노트만 붙은 대목을 누르면 노트를 엽니다 (형광펜 위라면 툴바의 ‘노트’로) */
+  var mm = e.target.closest('.memo[data-memo]');
+  if(mm){
+    var sel1 = window.getSelection();
+    if(sel1 && !sel1.isCollapsed) return;   /* 글자를 고르는 중이면 건드리지 않습니다 */
+    e.stopPropagation();
+    var mo = findMemo(mm.dataset.memo); if(mo) openMemoSheet(mo, false);
+    return;
+  }
 
   var sg = e.target.closest('.seg button');
   if(sg){
@@ -1752,6 +1994,13 @@ tool.addEventListener('click', function(e){
   if(btn.dataset.c){
     if(S.pending && S.pending.mode === 'edit') recolorHl(S.pending.ch, S.pending.id, btn.dataset.c);
     else addHl(btn.dataset.c);
+  } else if(btn.classList.contains('hlmemo')){
+    var pd = S.pending;
+    var sel0 = window.getSelection(); if(sel0) sel0.removeAllRanges();
+    hideTool(); S.pending = null;
+    if(pd && pd.mode === 'add') openMemoSheet(memoDraft(pd.ch, pd.side, pd.parts), true);
+    else if(pd && pd.mode === 'edit') memoForHl(pd.ch, pd.id);
+    return;
   } else if(btn.classList.contains('hlrm')){
     if(S.pending && S.pending.mode === 'edit'){
       var ch = S.pending.ch, id = S.pending.id;
