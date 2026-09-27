@@ -26,6 +26,7 @@ GitHub Pages(`main` 브랜치)로 배포되고(https://luka7497.github.io/bates-
   - 확인된 것: SBLGNT (CC BY 4.0), 레닌그라드 사본 WLC (퍼블릭 도메인), STEPBible-Data (CC BY 4.0), KJV (퍼블릭 도메인)
   - 데이터 파일만 받고, 저장소에 든 스크립트는 실행하지 않습니다 (`npm install` 금지).
 - **기존 기록 키 `hb.*`는 지우지 않습니다.** 되돌리기용입니다.
+- 실제 기록 백업: `~/Desktop/bates-harmony-backup.json` (2026-09-27, 형광펜 139개 = 본문 87 + 주해 52, 북마크 3). 개인 독서 기록이므로 저장소에 넣거나 커밋하지 않습니다.
 - 번역을 고칠 때는 `RETRANS_STYLE.md`를 따릅니다.
 
 ## 작업 방식
