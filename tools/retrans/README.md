@@ -43,3 +43,19 @@ VII장에서 시범 번역을 블라인드로 비교했고, **Opus 5.5 번역이
 
 - 첫 장(VIII)을 끝내면 **멈추고** 사용자에게 알립니다. 사용자가 크레딧 잔액을 확인한 뒤 계속할지 정합니다.
 - 참고: VII장(영어 5,225단어) 시범 번역은 서브에이전트 하나당 약 16만~18만 토큰이 들었습니다. `slice.py`로 입력을 줄였으니 그보다 적어야 합니다.
+
+## 형광펜 장(서문·I–VI) 재번역 (2026-09-27 사용자 승인)
+
+형광펜이 한국어 글자 위치에 묶여 있어, 본문과 함께 형광펜 위치를 옮기는 표(`src/hlmig.json`)를 만듭니다.
+앱(`src/template.html`의 '재번역 형광펜 이전')이 이 표로 기기와 동기화 서버의 형광펜·노트·북마크를 한 번 옮깁니다.
+
+```bash
+export RETRANS_UNLOCK=1                       # 형광펜 장 잠금 해제
+python3 tools/retrans/slice.py 3 /tmp/retrans/3   # 이후 번역·validate는 같음
+python3 tools/retrans/hlmap.py task 3 <백업.json> /tmp/retrans/3/out.json /tmp/retrans/3/hl_task.json
+#   → 형광펜마다 새 번역에서 같은 대목을 골라 /tmp/retrans/3/hl_answer.json 작성 ({id: 새 문단에서 그대로 복사한 구절})
+python3 tools/retrans/hlmap.py build 3 /tmp/retrans/3/hl_task.json /tmp/retrans/3/hl_answer.json   # apply 전에!
+python3 tools/retrans/apply.py 3 /tmp/retrans/3/out.json && python3 build.py
+```
+
+백업 파일은 개인 기록이므로 저장소에 넣지 않습니다. 표에 없는 형광펜(백업 뒤에 칠한 것)은 문단 안 비율로 옮깁니다.

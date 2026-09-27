@@ -686,6 +686,73 @@ function fill(node, text, notes){
 }
 function plain(t){ return String(t).replace(/\{\{[a-z0-9_]+\}\}/g, '').trim(); }
 
+/* ── 재번역 형광펜 이전 ───────────────────────────────────
+   서문·I–VI장 본문을 새로 번역하면서, 예전 번역의 글자 위치로 저장된 형광펜·노트를
+   새 번역의 같은 대목으로 옮깁니다. HLM.map = 백업에 있던 형광펜마다 고른 새 위치
+   (tools/retrans/hlmap.py), 표에 없는 것은 문단 안 비율로 옮깁니다.
+   옮긴 항목과 새로 만든 항목에는 tv(본문 판)를 붙여 두 번 옮기지 않습니다.
+   다른 기기·서버에서 들어오는 예전 항목도 합치기 전에 같은 방식으로 옮깁니다. */
+var HLM = DATA.hlmig || {v:0, old:{}, map:{}};
+/* 화면에 보이는 한국어 문단 글자열 — 주석 표지는 그 약칭 글자로 (fill과 같은 규칙) */
+function koText(ch, i){
+  var c = CH[ch], notes = (c && c.notes) || {};
+  return String((c && c.ko && c.ko[i]) || '').replace(/\{\{([a-z0-9_]+)\}\}/g, function(_, id){
+    var n = notes[id]; return n ? (n.m || '주') : '';
+  });
+}
+/* 새로 만드는 항목의 본문 판 — 옮김 대상인 장에서만 붙입니다 (아직 옮기지 않은 장은 예전 번역 기준이므로) */
+function tvFor(ch){ return HLM.old[ch] ? HLM.v : 0; }
+function hlmNeed(ch, side, tv){ return side === 'ko' && !!HLM.old[ch] && (tv || 0) < HLM.v; }
+function hlmSpan(ch, i, a, b){
+  var o = HLM.old[ch][i] || 1, n = koText(ch, i).length;
+  var na = Math.min(Math.round(a * n / o), n), nb = Math.min(Math.max(Math.round(b * n / o), na + 1), n);
+  return [i, Math.min(na, Math.max(nb - 1, 0)), nb];
+}
+function migHl(ch, h){
+  if(!h || !hlmNeed(ch, h.side, h.tv)) return h;
+  var s = HLM.map[h.id] || hlmSpan(ch, h.i, h.a, h.b);
+  var t = koText(ch, s[0]);
+  return {id:hlId(ch, 'ko', s[0], s[1], s[2]), i:s[0], side:'ko', a:s[1], b:s[2], c:h.c,
+          t:t.slice(s[1], s[2]), ts:h.ts, tv:HLM.v};
+}
+function migMemo(ch, m){
+  if(!m || !m.parts || !hlmNeed(ch, m.side, m.tv)) return m;
+  var parts = m.parts.map(function(pt){ var s = hlmSpan(ch, pt.i, pt.a, pt.b); return {i:s[0], a:s[1], b:s[2]}; });
+  var o = {}; for(var k in m) o[k] = m[k];
+  o.parts = parts;
+  o.t = parts.map(function(pt){ return koText(ch, pt.i).slice(pt.a, pt.b); }).join(' … ');
+  o.tv = HLM.v;
+  return o;
+}
+function migBm(b){
+  if(!b || !HLM.old[b.ch] || (b.tv || 0) >= HLM.v) return b;
+  var c = CH[b.ch], o = {}; for(var k in b) o[k] = b[k];
+  o.t = plain((c && c.ko && c.ko[b.i]) || '').slice(0, 70); o.tv = HLM.v;
+  return o;
+}
+/* 형광펜·노트·북마크 묶음 전체를 옮깁니다 (같은 id가 겹치면 하나만) */
+function migAll(hl, memo, bm){
+  if(hl) for(var ch in hl){
+    if(!HLM.old[ch] || !hl[ch]) continue;
+    var seen = {};
+    hl[ch] = hl[ch].map(function(h){ return migHl(ch, h); })
+      .filter(function(h){ if(!h || seen[h.id]) return false; seen[h.id] = 1; return true; });
+  }
+  if(memo) for(var mc in memo){
+    if(HLM.old[mc] && memo[mc]) memo[mc] = memo[mc].map(function(m){ return migMemo(mc, m); });
+  }
+  return Array.isArray(bm) ? bm.map(migBm) : bm;
+}
+(function(){
+  if(!HLM.v) return;
+  var before = JSON.stringify([S.hl, S.memo, S.bm]);
+  S.bm = migAll(S.hl, S.memo, S.bm);
+  if(JSON.stringify([S.hl, S.memo, S.bm]) === before) return;
+  LS.set('hb.hl', JSON.stringify(S.hl));
+  LS.set('hb.memo', JSON.stringify(S.memo));
+  LS.set('hb.bm', JSON.stringify(S.bm));
+})();
+
 /* ── 렌더 ─────────────────────────────────────────────── */
 function render(id, scroll){
   S.ch = id; LS.set('hb.at', id);
@@ -899,7 +966,7 @@ function addHl(color){
   parts.forEach(function(pt){
     var id = hlId(p.ch, p.side, pt.i, pt.a, pt.b);
     if(!arr.some(function(h){ return h.id === id; })){
-      arr.push({id:id, i:pt.i, side:p.side, a:pt.a, b:pt.b, c:color, t:pt.text, ts:Date.now()});
+      arr.push({id:id, i:pt.i, side:p.side, a:pt.a, b:pt.b, c:color, t:pt.text, ts:Date.now(), tv:tvFor(p.ch)});
       added++;
     }
   });
@@ -1038,7 +1105,7 @@ function commitMemo(o){
     if(!text.trim()) return false;                   /* 빈 노트는 만들지 않습니다 */
     var now = Date.now();
     var m = {id:o.ch + '|m|' + now.toString(36) + Math.random().toString(36).slice(2, 6),
-             side:o.m.side, parts:o.m.parts, t:o.m.t, body:text, ts:now, u:now};
+             side:o.m.side, parts:o.m.parts, t:o.m.t, body:text, ts:now, u:now, tv:tvFor(o.ch)};
     (S.memo[o.ch] || (S.memo[o.ch] = [])).push(m);
   } else {
     if(text === o.m.body) return false;
@@ -1196,7 +1263,7 @@ function toggleBm(){
   else {
     var c = CH[S.ch];
     var snip = plain((c.ko && c.ko[i]) || c.paras[i] || '');
-    S.bm.push({ch:S.ch, i:i, t:snip.slice(0, 70), ts:Date.now()});
+    S.bm.push({ch:S.ch, i:i, t:snip.slice(0, 70), ts:Date.now(), tv:tvFor(S.ch)});
     saveBm(); toast('이 자리를 북마크했어요');
   }
   updBmBtn(); markBmParas();
@@ -1267,14 +1334,18 @@ function applyData(d){
     });
   }
 
+  /* 예전 본문 위치로 들어온 항목은 합치기 전에 새 번역 위치로 옮깁니다 (재번역 형광펜 이전).
+     지운 기록은 옮기기 전 id와 옮긴 뒤 id를 모두 봅니다 */
   if(d.hl) for(var ch in d.hl){
     var arr = S.hl[ch] || (S.hl[ch] = []);
-    (d.hl[ch] || []).forEach(function(h){
+    (d.hl[ch] || []).forEach(function(h0){
+      if(!h0 || S.del.h[h0.id]) return;
+      var h = migHl(ch, h0);
       if(S.del.h[h.id]) return;                                   /* 지운 형광펜은 되살리지 않습니다 */
       if(!arr.some(function(x){ return x.id === h.id; })){ arr.push(h); addH++; }
     });
   }
-  if(Array.isArray(d.bm)) d.bm.forEach(function(b){
+  if(Array.isArray(d.bm)) d.bm.map(migBm).forEach(function(b){
     if(S.del.b[b.ch + '|' + b.i]) return;                         /* 지운 북마크도 마찬가지 */
     if(!S.bm.some(function(x){ return x.ch === b.ch && x.i === b.i; })){ S.bm.push(b); addB++; }
   });
@@ -1291,7 +1362,8 @@ function applyData(d){
      지운 기록보다 나중에 고친 노트는 살립니다 */
   if(d.memo) for(var mc in d.memo){
     var marr = S.memo[mc] || (S.memo[mc] = []);
-    (d.memo[mc] || []).forEach(function(m){
+    (d.memo[mc] || []).forEach(function(m0){
+      var m = migMemo(mc, m0);
       if(!m || !m.id || !m.parts || memoDead(m)) return;
       var cur = null;
       for(var j = 0; j < marr.length; j++){ if(marr[j].id === m.id){ cur = marr[j]; break; } }

@@ -114,6 +114,10 @@ def main():
         chapters[key] = ch
 
     data = {'order': ORDER, 'parts': PARTS, 'chapters': chapters}
+    # 재번역한 형광펜 장의 형광펜 이전 표 (tools/retrans/hlmap.py) — 앱이 기기의 형광펜을 한 번 옮깁니다
+    mig_path = os.path.join(SRC, 'hlmig.json')
+    if os.path.exists(mig_path):
+        data['hlmig'] = json.load(open(mig_path))
     tpl = open(os.path.join(SRC, 'template.html')).read()
 
     # 한글 명조(나눔명조 OFL) 서브셋을 data URI로 내장 — 아이패드·아이폰에서도 명조로 렌더링됩니다
