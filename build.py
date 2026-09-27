@@ -135,7 +135,8 @@ def main():
 
     # 빌드 시각을 심어, 각 기기가 최신본을 열고 있는지 눈으로 확인할 수 있게 합니다
     import datetime
-    build_id = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+    # 한국 시각으로 적습니다 (클라우드에서 빌드하면 서버 시계가 UTC라 9시간 이르게 보였습니다)
+    build_id = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9))).strftime('%Y-%m-%d %H:%M')
     out = out.replace('/*__BUILD__*/', build_id)
 
     path = os.path.join(ROOT, 'index.html')
